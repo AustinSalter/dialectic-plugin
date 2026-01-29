@@ -72,7 +72,7 @@ MARKET_STRUCTURE_OUTPUT:
 └── asymmetric_risk_note: [if WTA: "Caution increases risk; aggression reduces it"]
 ```
 
-**See**: `.claude/skills/n-pass-reasoning/PATTERNS.md` for domain-specific market structure patterns.
+**See**: `skills/dialectic/PATTERNS.md` for domain-specific market structure patterns.
 
 ---
 

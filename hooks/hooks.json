@@ -1,0 +1,9 @@
+{
+  "hooks": [
+    {
+      "event": "Stop",
+      "command": "./scripts/stop-hook.sh",
+      "description": "Dialectic reasoning loop controller - blocks exit and re-feeds prompt until CONCLUDE or max iterations"
+    }
+  ]
+}

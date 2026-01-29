@@ -40,9 +40,9 @@ Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
 
 ## Step 2: EXPANSION Pass (Thesis)
 
-**For detailed expansion instructions, see `.claude/skills/dialectic/EXPANSION.md`**
+**For detailed expansion instructions, see `skills/dialectic/EXPANSION.md`**
 
-Explore broadly. Use semantic markers (see `.claude/skills/dialectic/MARKERS.md`):
+Explore broadly. Use semantic markers (see `skills/dialectic/MARKERS.md`):
 - `[INSIGHT]` - Non-obvious conclusion
 - `[EVIDENCE]` - Specific data point
 - `[COUNTER]` - Argument against thesis
@@ -53,7 +53,7 @@ Append expansion output to `.claude/dialectic/scratchpad.md`.
 
 ## Step 3: COMPRESSION Pass (Antithesis)
 
-**For detailed compression instructions, see `.claude/skills/dialectic/COMPRESSION.md`**
+**For detailed compression instructions, see `skills/dialectic/COMPRESSION.md`**
 
 Synthesize expansion findings:
 1. Update thesis if evidence warrants
@@ -65,7 +65,7 @@ Add confidence to `thesis.confidence_history` before updating current confidence
 
 ## Step 4: CRITIQUE Pass (Sublation)
 
-**For detailed critique protocol, see `.claude/skills/dialectic/CRITIQUE.md`**
+**For detailed critique protocol, see `skills/dialectic/CRITIQUE.md`**
 
 Apply these questioning techniques:
 1. **Inversion**: What if the opposite were true?
@@ -83,8 +83,8 @@ Write decision to state.json `decision` field (lowercase: "continue", "conclude"
 ## Step 5: Check Termination
 
 If decision is "conclude" or iteration >= max_iterations:
-- Run SYNTHESIS pass (see `.claude/skills/dialectic/SYNTHESIS.md`)
-- If max iterations forced exit, also reference `.claude/skills/dialectic/ESCAPE-HATCH.md`
+- Run SYNTHESIS pass (see `skills/dialectic/SYNTHESIS.md`)
+- If max iterations forced exit, also reference `skills/dialectic/ESCAPE-HATCH.md`
 - Output `[ANALYSIS_COMPLETE]` at the very end
 - The stop hook will clean up state files
 
@@ -118,4 +118,4 @@ This visibility IS the value. Do not summarize or hide your reasoning.
 
 ## Market Structure Patterns
 
-Reference `.claude/skills/dialectic/PATTERNS.md` for common strategic patterns to consider.
+Reference `skills/dialectic/PATTERNS.md` for common strategic patterns to consider.

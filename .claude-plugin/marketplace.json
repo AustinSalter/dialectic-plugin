@@ -1,0 +1,14 @@
+{
+  "catalog": {
+    "title": "Dialectic Reasoning",
+    "tagline": "Multi-pass strategic analysis with confidence-calibrated recommendations",
+    "category": "reasoning",
+    "featured": false
+  },
+  "installation": {
+    "instructions": "Clone the repository and point Claude Code to the plugin directory using --plugin-dir"
+  },
+  "compatibility": {
+    "claude_code_version": ">=1.0.0"
+  }
+}

@@ -1,5 +1,5 @@
 ---
-name: n-pass-reasoning
+name: dialectic
 description: Multi-pass strategic reasoning with expansion, compression, and critique cycles. Analyzes complex strategic questions through iterative exploration and structured synthesis. Use when facing ambiguous problems requiring deep analysis, thesis validation, or confidence-calibrated recommendations.
 ---
 
@@ -58,12 +58,6 @@ Passes receive working memory as context. Standard format:
 **Critique**: See [CRITIQUE.md](CRITIQUE.md) — includes 6 questioning techniques, problem-type routing, 3D confidence
 **Synthesis**: See [SYNTHESIS.md](SYNTHESIS.md)
 **Escape Hatch**: See [ESCAPE-HATCH.md](ESCAPE-HATCH.md)
-
-## Related Skills
-
-**Cognitive Pitfalls**: See [../cognitive-pitfalls/SKILL.md](../cognitive-pitfalls/SKILL.md) for 7 cognitive pitfalls, the Four Stases framework, and meta-diagnostics.
-
-**Cognitive Biases**: See [../../SKILL_cognitive_biases.md](../../SKILL_cognitive_biases.md) for full 10-bias detection framework with severity levels.
 
 ## Semantic Markers
 
