@@ -1,0 +1,7 @@
+{
+  "name": "dialectic",
+  "version": "1.0.0",
+  "description": "Multi-pass dialectic reasoning with automatic looping",
+  "commands": ["dialectic", "cancel-dialectic"],
+  "hooks": ["stop"]
+}
