@@ -1,14 +1,16 @@
 {
-  "catalog": {
-    "title": "Dialectic Reasoning",
-    "tagline": "Multi-pass strategic analysis with confidence-calibrated recommendations",
-    "category": "reasoning",
-    "featured": false
+  "name": "dialectic",
+  "owner": {
+    "name": "Austin Salter"
   },
-  "installation": {
-    "instructions": "Clone the repository and point Claude Code to the plugin directory using --plugin-dir"
+  "metadata": {
+    "description": "Dialectic reasoning plugin for Claude Code"
   },
-  "compatibility": {
-    "claude_code_version": ">=1.0.0"
-  }
+  "plugins": [
+    {
+      "name": "dialectic",
+      "description": "Multi-pass dialectic reasoning with automatic looping",
+      "source": "./"
+    }
+  ]
 }
