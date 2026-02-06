@@ -2,12 +2,11 @@
   "name": "dialectic",
   "version": "1.0.0",
   "description": "Multi-pass dialectic reasoning with automatic looping. Analyzes complex strategic questions through iterative expansion, compression, and critique cycles.",
-  "author": "Austin Salter",
-  "homepage": "https://github.com/austinsalter/dialectic-plugin",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/austinsalter/dialectic-plugin.git"
+  "author": {
+    "name": "Austin Salter"
   },
+  "homepage": "https://github.com/AustinSalter/dialectic-plugin",
+  "repository": "https://github.com/AustinSalter/dialectic-plugin",
   "license": "MIT",
   "keywords": [
     "reasoning",
@@ -16,7 +15,5 @@
     "multi-pass",
     "decision-making",
     "thesis-validation"
-  ],
-  "commands": ["dialectic", "cancel-dialectic"],
-  "hooks": ["stop"]
+  ]
 }
