@@ -14,20 +14,34 @@ fi
 # Read state
 DECISION=$(jq -r '.decision // ""' "$STATE_FILE" 2>/dev/null)
 ITERATION=$(jq -r '.iteration // 0' "$STATE_FILE" 2>/dev/null)
+MIN_ITERATIONS=$(jq -r '.min_iterations // 2' "$STATE_FILE" 2>/dev/null)
 MAX_ITERATIONS=$(jq -r '.max_iterations // 5' "$STATE_FILE" 2>/dev/null)
 CONFIDENCE=$(jq -r '.thesis.confidence // 0' "$STATE_FILE" 2>/dev/null)
 THESIS=$(jq -r '.thesis.current // ""' "$STATE_FILE" 2>/dev/null | head -c 100)
 
-# Check for completion
+# Check for completion — but enforce iteration floor
 if [ "$DECISION" = "conclude" ] || [ "$DECISION" = "CONCLUDE" ]; then
-  echo ""
-  echo "================================================"
-  echo "  Dialectic reasoning complete!"
-  echo "  Final confidence: $CONFIDENCE"
-  echo "  Iterations: $ITERATION"
-  echo "================================================"
-  rm -rf "$STATE_DIR"
-  exit 0
+  if [ "$ITERATION" -lt "$MIN_ITERATIONS" ]; then
+    # Below iteration floor — override CONCLUDE to CONTINUE
+    echo ""
+    echo "================================================"
+    echo "  CONCLUDE overridden — below iteration floor"
+    echo "  Iteration $ITERATION < min_iterations $MIN_ITERATIONS"
+    echo "  Forcing CONTINUE for deeper analysis..."
+    echo "================================================"
+    jq '.decision = "continue"' "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
+    # Fall through to the continue block below
+  else
+    echo ""
+    echo "================================================"
+    echo "  Dialectic reasoning complete!"
+    echo "  Final confidence: $CONFIDENCE"
+    echo "  Iterations: $ITERATION"
+    echo "================================================"
+    rm -rf "$STATE_DIR"
+    exit 0
+  fi
 fi
 
 # Check iteration limit
@@ -55,7 +69,7 @@ mv "$STATE_FILE.tmp" "$STATE_FILE"
 
 echo ""
 echo "================================================"
-echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS"
+echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS (floor: $MIN_ITERATIONS)"
 echo "  Current confidence: $CONFIDENCE"
 echo "  Thesis: ${THESIS}..."
 echo "  Decision: $DECISION -> continuing"
