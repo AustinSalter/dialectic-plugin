@@ -1,6 +1,12 @@
 #!/bin/bash
-# Dialectic Reasoning Stop Hook
+# Dialectic Reasoning Stop Hook (bash/jq version, requires bash + jq)
 # Blocks exit and re-feeds prompt until CONCLUDE or max iterations
+#
+# Exit 0 = allow stop
+# Exit 2 = block stop (stderr is fed back to Claude as continuation prompt)
+#
+# The primary hook is stop-hook.js (cross-platform, no jq dependency).
+# This script is kept as a bash-native alternative.
 
 STATE_DIR=".claude/dialectic"
 STATE_FILE="$STATE_DIR/state.json"
@@ -55,11 +61,9 @@ if [ "$ITERATION" -ge "$MAX_ITERATIONS" ]; then
   jq '.decision = "conclude"' "$STATE_FILE" > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-  echo ""
-  echo "Continue the dialectic reasoning cycle. Max iterations reached - run ESCAPE-HATCH and SYNTHESIS passes. Read state from .claude/dialectic/state.json."
-  echo ""
+  echo "Continue the dialectic reasoning cycle. Max iterations reached - run ESCAPE-HATCH and SYNTHESIS passes. Read state from .claude/dialectic/state.json." >&2
 
-  exit 1  # One more pass for synthesis
+  exit 2  # Block stop, one more pass for synthesis
 fi
 
 # Continue loop - increment iteration and re-feed
@@ -74,8 +78,6 @@ echo "  Current confidence: $CONFIDENCE"
 echo "  Thesis: ${THESIS}..."
 echo "  Decision: $DECISION -> continuing"
 echo "================================================"
-echo ""
-echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION."
-echo ""
+echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
 
-exit 1  # Block exit, continue loop
+exit 2  # Block stop, continue loop

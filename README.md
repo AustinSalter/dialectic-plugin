@@ -56,7 +56,7 @@ The dialectic loop will:
 4. **Loop** — Automatically continue until the thesis is robust or max iterations reached
 5. **SYNTHESIS** — Produce a conviction memo with actionable recommendations
 
-A stop hook manages the loop automatically — blocking exit and re-feeding the prompt until the critique pass decides to conclude or the iteration limit is reached.
+A stop hook manages the loop automatically — blocking exit (exit code 2) and re-feeding the prompt via stderr until the critique pass decides to conclude or the iteration limit is reached. The hook is written in Node.js for cross-platform support (macOS, Linux, and Windows).
 
 ### Cancel the loop
 
@@ -156,7 +156,8 @@ dialectic-plugin/
 ├── hooks/
 │   └── hooks.json          # Stop hook configuration
 ├── scripts/
-│   └── stop-hook.sh        # Loop controller script
+│   ├── stop-hook.js        # Loop controller (cross-platform, primary)
+│   └── stop-hook.sh        # Loop controller (bash/jq alternative)
 └── README.md
 ```
 
