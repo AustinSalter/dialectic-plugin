@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-// Dialectic Reasoning Stop Hook (cross-platform)
-// Blocks exit and re-feeds prompt until CONCLUDE or max iterations
+// Dialectic Reasoning Stop Hook (Windows fallback)
+// On macOS/Linux the bash hook handles this; this script only runs on Windows.
 //
 // Exit 0 = allow stop
 // Exit 2 = block stop (stderr is fed back to Claude as continuation prompt)
 
 const fs = require("fs");
 const path = require("path");
+
+// Only run on Windows — on macOS/Linux the bash hook handles this
+if (process.platform !== "win32") {
+  process.exit(0);
+}
 
 const STATE_DIR = ".claude/dialectic";
 const STATE_FILE = path.join(STATE_DIR, "state.json");
