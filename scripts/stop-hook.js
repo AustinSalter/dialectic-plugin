@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-// Dialectic Reasoning Stop Hook (Windows fallback)
-// On macOS/Linux the bash hook handles this; this script only runs on Windows.
+// Dialectic Reasoning Stop Hook (cross-platform entry point)
+//
+// On macOS/Linux: delegates to stop-hook.sh (bash/jq)
+// On Windows: handles logic directly in Node.js
 //
 // Exit 0 = allow stop
 // Exit 2 = block stop (stderr is fed back to Claude as continuation prompt)
@@ -8,10 +10,19 @@
 const fs = require("fs");
 const path = require("path");
 
-// Only run on Windows — on macOS/Linux the bash hook handles this
+// On macOS/Linux, delegate to the bash hook
 if (process.platform !== "win32") {
-  process.exit(0);
+  const { execFileSync } = require("child_process");
+  const bashHook = path.join(__dirname, "stop-hook.sh");
+  try {
+    execFileSync("bash", [bashHook], { stdio: "inherit" });
+    process.exit(0);
+  } catch (e) {
+    process.exit(e.status || 1);
+  }
 }
+
+// Windows: handle directly in Node.js
 
 const STATE_DIR = ".claude/dialectic";
 const STATE_FILE = path.join(STATE_DIR, "state.json");
