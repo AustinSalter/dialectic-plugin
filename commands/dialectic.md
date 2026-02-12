@@ -20,9 +20,9 @@ Parse `$ARGUMENTS` for optional flags before the thesis text:
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
 
 Extract the thesis/question text (everything that isn't a flag). Examples:
-- `/dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5
-- `/dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"` → min=4, max=5
-- `/dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"` → min=3, max=7
+- `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5
+- `/dialectic:dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"` → min=4, max=5
+- `/dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"` → min=3, max=7
 
 ### Initial State (create if not exists)
 

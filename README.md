@@ -33,7 +33,7 @@ Then add it as a local marketplace from within Claude Code:
 ### Start dialectic reasoning
 
 ```
-/dialectic <thesis or question>
+/dialectic:dialectic <thesis or question>
 ```
 
 Optional flags:
@@ -44,8 +44,8 @@ Optional flags:
 Examples:
 
 ```
-/dialectic Should Yahoo acquire Google for $3B in 2002?
-/dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"
+/dialectic:dialectic Should Yahoo acquire Google for $3B in 2002?
+/dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"
 ```
 
 The dialectic loop will:
@@ -61,7 +61,7 @@ A stop hook manages the loop automatically — blocking exit (exit code 2) and r
 ### Cancel the loop
 
 ```
-/cancel-dialectic
+/dialectic:cancel-dialectic
 ```
 
 Stops the reasoning loop, reports where analysis stopped, and cleans up state files.
