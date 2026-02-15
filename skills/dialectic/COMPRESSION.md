@@ -26,9 +26,9 @@ Claims rated 1-2 are evidence gaps.
 ```yaml
 insights:
   - claim: "..."
-    confidence: 0.XX
     evidence: ["..."]
     counters_addressed: ["..."]
+    evidence_rating: [1-5]
 
 tensions:
   - description: "..."
@@ -40,93 +40,77 @@ threads:
     why: "..."
     explored: true/false
 
-overall_confidence: 0.XX
+confidence:
+  R: 0.XX  # defensibility
+  E: 0.XX  # evidence saturation
+  C: 0.XX  # domain determinacy
+  R_note: "..." # what would break the argument
+  E_note: "..." # what evidence is missing or saturated
+  C_note: "..." # what makes this domain uncertain
 
 termination:
   should_continue: true/false
-  reason: "saturation|low_confidence|unresolved_tensions|unexplored_threads|sufficient"
+  reason: "reasoning_flaw|evidence_unsaturated|saturated|all_threads_explored"
 ```
 
-## Output Format (JSON)
+## Confidence: Three Dimensions
 
-For runners requiring JSON:
+Do not use a single scalar. Three dimensions, three different questions, no composite.
 
-```json
-{
-  "thesis_update": "Updated thesis statement (or 'no change')",
-  "confidence": 0.XX,
-  "confidence_reasoning": "Why this confidence level",
-  "evidence_summary": {
-    "supporting": ["key point 1", "key point 2"],
-    "challenging": ["key point 1", "key point 2"]
-  },
-  "next_priority": "Most important question to investigate next",
-  "areas_investigated": ["area1", "area2"]
-}
-```
+### R — Defensibility: Can this survive scrutiny?
 
-## 3D Confidence Model
-
-Single scalar confidence conflates three distinct concepts. Use three dimensions:
+R is a **gate**, not a score. A fallacy in the chain means the conclusion doesn't follow, regardless of evidence. High E cannot compensate for low R. Fix reasoning before gathering more evidence.
 
 ```
-REASONING_QUALITY (R): 0.0-1.0
-  - Is the logical structure sound?
-  - Are there fallacies in the argument chain?
-  - 1.0 = fallacy-free reasoning
-
-EVIDENCE_QUALITY (E): 0.0-1.0
-  - Is the evidence complete and verified?
-  - Are there gaps, contradictions, or stale data?
-  - 1.0 = solid epistemic foundation
-
-CONCLUSION_CONFIDENCE (C): 0.0-1.0
-  - Given R and E, how certain is the thesis?
-  - Reflects genuine domain uncertainty
-  - 0.5 = appropriate for genuinely uncertain situations
+No fallacy found this cycle → R moves slowly toward prior
+  R = R + (0.85 - R) * 0.15
+Fallacy found → R drops fast
+  R = R - 0.2 per identified fallacy, floor 0.3
 ```
 
-**Composite**: `(R + E + C) / 3` (weighted average, NOT multiplicative)
+### E — Evidence Saturation: Would more evidence help?
 
-Example: R=0.70, E=0.80, C=0.50 → **0.67** (not 0.28 from multiplication)
+E drives the **CONTINUE/CONCLUDE decision**. Not "is the evidence good?" but "has the marginal value of another iteration approached zero?"
 
-**Key insight**: Fallacies ≠ Evidence gaps. Different failure modes require different responses:
-
-| Issue Type | Affects | Response |
-|------------|---------|----------|
-| Fallacy | R (Reasoning) | Fix the logic |
-| Evidence Gap | E (Epistemic) | Acknowledge or investigate |
-| Domain Uncertainty | C (Conclusion) | Accept as legitimate |
-
-## Confidence Recovery
-
-Confidence should BOUNCE, not just decline. Zero means "thesis inverted," not "accumulated 20 minor issues."
+*Ask*:
+- What is the strongest piece of evidence I haven't looked for?
+- If I found it, how much would it change the thesis?
+- Am I seeing the same patterns repeated (saturated) or new patterns each time (unsaturated)?
 
 ```
-If no fallacies this cycle:
-    R += 0.1 (recover)
-If fallacies found:
-    R = max(0.5, 0.9 - count * 0.15)
+Redundant confirming evidence  → E = E + 0.02
+Novel confirming evidence      → E = E + 0.08
+Contradicting evidence found   → E = E - 0.15
+Contradiction addressed        → E = E + 0.10
 ```
 
-## Confidence Calibration (Legacy Single-Scalar)
+### C — Domain Determinacy: What are the limits of this claim?
 
-| Confidence | Meaning |
-|------------|---------|
-| 0.0-0.3 | Highly uncertain, major evidence gaps |
-| 0.3-0.5 | Leaning but significant counters unaddressed |
-| 0.5-0.7 | Moderate confidence, some uncertainties remain |
-| 0.7-0.85 | High confidence, minor residual risks |
-| 0.85-1.0 | Very high confidence (rare, requires strong evidence) |
+C measures how much certainty the *domain* permits. C is **discovered, not optimized** — if C drifts upward across iterations without new evidence, that's motivated reasoning. More iterations don't reduce ontological uncertainty.
+
+C does not drive iteration. C drives **how you hold the claim**:
+
+| C Range | Memo Tone |
+|---------|-----------|
+| 0.7+ | "Act on this." |
+| 0.5–0.7 | "Hold this provisionally. Here's the release condition." |
+| < 0.5 | "Best frame available. Here's what would need to change." Reference `skills/dialectic/ESCAPE-HATCH.md`. |
+
+## Decision Table
+
+| Pattern | Response |
+|---------|----------|
+| R low | CONTINUE — fix reasoning first |
+| R ok, E low | CONTINUE — gather data if marginal value is high |
+| R ok, E saturated, any C | CONCLUDE — C determines tone, not whether to stop |
+| R ok, E mixed, C contradicts E | ELEVATE — the frame is wrong |
 
 ## Termination Signals
 
-Set `should_continue: false` when:
-- Confidence ≥ 0.75 and < 2 unresolved questions
-- Confidence delta < 0.05 for 2 consecutive cycles (saturation)
-- All material threads explored
+R and E drive whether you continue. C drives how you write the conclusion.
 
-Set `should_continue: true` when:
-- Unresolved tensions with material impact
-- Unexplored threads that could change the thesis
-- Confidence < 0.5 and evidence gaps are addressable
+**CONTINUE**: R < 0.6, or E < 0.6 with identifiable productive evidence remaining, or E delta > 0.05 between last two cycles.
+
+**CONCLUDE**: R ≥ 0.7 AND E saturated (delta < 0.05 for 2 cycles or no productive threads). Do not wait for C to rise.
+
+**ELEVATE**: R and E adequate but C contradicts the evidence pattern.

@@ -45,7 +45,11 @@ Create the directory `.claude/dialectic/` and write `state.json`:
   "phase": "expansion",
   "thesis": {
     "current": "<extracted thesis text>",
-    "confidence": 0.5,
+    "confidence": {
+      "R": 0.5,
+      "E": 0.3,
+      "C": 0.5
+    },
     "confidence_history": []
   },
   "evidence": {
@@ -87,7 +91,7 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 ## Iteration {N}
 
 **Thesis**: {current thesis}
-**Confidence**: {X.XX}
+**Confidence**: R={X.XX} E={X.XX} C={X.XX}
 **Key Evidence**: {brief summary}
 **Decision**: {CONTINUE/CONCLUDE/ELEVATE}
 **Next Priority**: {question to explore}

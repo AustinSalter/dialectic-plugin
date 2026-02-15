@@ -45,7 +45,11 @@ const decision = (state.decision || "").toLowerCase();
 const iteration = state.iteration || 0;
 const minIterations = state.min_iterations || 2;
 const maxIterations = state.max_iterations || 5;
-const confidence = state.thesis && state.thesis.confidence != null ? state.thesis.confidence : 0;
+// 3D Confidence: R (defensibility), E (evidence saturation), C (domain determinacy)
+const conf = (state.thesis && state.thesis.confidence) || {};
+const R = typeof conf === "object" ? (conf.R != null ? conf.R : 0.5) : conf;
+const E = typeof conf === "object" ? (conf.E != null ? conf.E : 0.5) : conf;
+const C = typeof conf === "object" ? (conf.C != null ? conf.C : 0.5) : conf;
 const thesis = ((state.thesis && state.thesis.current) || "").substring(0, 100);
 
 function writeState(obj) {
@@ -99,7 +103,7 @@ function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
     timestamp: new Date().toISOString(),
     artifacts: copied,
     reasoning_iterations: iteration,
-    final_confidence: confidence,
+    final_confidence: { R, E, C },
   };
   fs.writeFileSync(
     path.join(sessionDir, "manifest.json"),
@@ -131,7 +135,7 @@ if (loop === "reasoning") {
       log("");
       log("================================================");
       log("  Reasoning loop complete!");
-      log(`  Confidence: ${confidence} | Iterations: ${iteration}`);
+      log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
       log("  Transitioning to distillation loop...");
       log("================================================");
       state.loop = "distillation";
@@ -181,7 +185,7 @@ if (loop === "reasoning") {
     writeState(state);
 
     blockStop(
-      `Reasoning loop hit max iterations. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. ${confidence < 0.5 ? "Confidence is low — also reference skills/dialectic/ESCAPE-HATCH.md for honest uncertainty acknowledgment in the memo." : ""} Read state from .claude/dialectic/state.json.`
+      `Reasoning loop hit max iterations. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. ${E < 0.5 ? "Evidence saturation is low (E=" + E + ") — the analysis was cut short. Reference skills/dialectic/ESCAPE-HATCH.md for honest uncertainty acknowledgment in the memo." : ""}${C < 0.5 ? " Domain determinacy is low (C=" + C + ") — this question resists certainty. The memo should reflect this honestly, not paper over it." : ""} Read state from .claude/dialectic/state.json.`
     );
   }
 
@@ -193,7 +197,7 @@ if (loop === "reasoning") {
   log("");
   log("================================================");
   log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
-  log(`  Current confidence: ${confidence}`);
+  log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
   log(`  Thesis: ${thesis}...`);
   log(`  Decision: ${decision} -> continuing`);
   log("================================================");
@@ -217,7 +221,7 @@ if (loop === "reasoning") {
     log("  Distillation complete! Memo finalized.");
     log(`  Reasoning iterations: ${iteration}`);
     log(`  Distillation iterations: ${distIter}`);
-    log(`  Final confidence: ${confidence}`);
+    log(`  Final — R: ${R} | E: ${E} | C: ${C}`);
 
     // Preserve artifacts before cleanup
     const outputDir = state.output_dir || ".dialectic-output/";
