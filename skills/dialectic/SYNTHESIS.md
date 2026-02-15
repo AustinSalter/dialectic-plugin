@@ -1,3 +1,5 @@
+> **Role in two-loop architecture**: This file defines the **target format specification** for the conviction memo. It is referenced by the distillation loop's clarity check (see `DISTILLATION.md`). The distillation loop iteratively produces a memo that meets this spec. This file is NOT executed as a single-pass instruction.
+
 # Synthesis Pass: Conviction Memo
 
 Final output production. Goal: **incisive recommendation with conviction and actionability**.
@@ -192,12 +194,3 @@ We bet platform control > content quality because network effects compound while
 **Don't say**: "There are merits to both positions..."
 **Say instead**: "[Brief counter]. We commit because [mechanism]."
 
-## Completion Token
-
-End synthesis with exactly:
-
-```
-[ANALYSIS_COMPLETE]
-```
-
-No text after this token.

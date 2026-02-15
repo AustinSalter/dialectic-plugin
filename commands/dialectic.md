@@ -32,6 +32,7 @@ Create the directory `.claude/dialectic/` and write `state.json`:
   "session_id": "dialectic-{timestamp}",
   "prompt": "<extracted thesis text>",
   "iteration": 1,
+  "loop": "reasoning",
   "min_iterations": <parsed or default 2>,
   "max_iterations": <parsed or default 5>,
   "phase": "expansion",
@@ -94,13 +95,12 @@ Write decision to state.json `decision` field (lowercase: "continue", "conclude"
 
 ## Step 5: Check Termination
 
-**Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. The thesis hasn't been stress-tested enough yet. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor (iteration N < min_iterations M)."
+**Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
 
 If decision is "conclude" AND iteration >= min_iterations, OR iteration >= max_iterations:
-- Run SYNTHESIS pass (see `skills/dialectic/SYNTHESIS.md`)
-- If max iterations forced exit, also reference `skills/dialectic/ESCAPE-HATCH.md`
-- Output `[ANALYSIS_COMPLETE]` at the very end
-- The stop hook will clean up state files
+- Do NOT run synthesis inline
+- The stop hook will transition to the distillation loop automatically
+- Just end your current response normally
 
 If decision is "continue" (or overridden from conclude):
 - The stop hook will automatically re-feed the prompt
@@ -120,6 +120,17 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 
 ---
 ```
+
+## Step 7: Distillation Loop (automatic — triggered by stop hook)
+
+When the stop hook transitions to the distillation loop, follow the instructions in `skills/dialectic/DISTILLATION.md`.
+
+The distillation loop:
+1. Extracts a reasoning spine from the scratchpad (first iteration only)
+2. Drafts a conviction memo targeting the format in `skills/dialectic/SYNTHESIS.md`
+3. Runs fidelity check (spine coverage) and clarity check (spec compliance)
+4. Revises until both checks pass or max distillation iterations reached
+5. Outputs `[ANALYSIS_COMPLETE]` when done
 
 ## Output Format
 
