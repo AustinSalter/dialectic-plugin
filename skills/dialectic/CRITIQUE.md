@@ -30,6 +30,15 @@ Run all five against the framed thesis:
 
 **For domain-specific probes:** See patterns/{domain}.md
 
+## Elevation Test
+
+Counter-arguments that survive the probes must *change the thesis*, not just get noted. There are exactly two honest responses to a counter-argument that withstands scrutiny:
+
+1. **Elevate**: The thesis absorbs the objection and becomes stronger. The counter-argument reveals what the thesis was *actually* trying to say. (See Stripe example below — "copyable features" forces elevation from product thesis to infrastructure thesis.)
+2. **Weaken**: The thesis loses confidence. The counter-argument identified a genuine vulnerability that the current frame cannot resolve.
+
+The dishonest response is **amputation**: acknowledging the counter-argument exists, then proceeding as if it doesn't. Test: *if you removed your treatment of the strongest counter-argument, would anything else in the critique change?* If no, you amputated.
+
 ## Preservation Gate (Required)
 
 Cannot decide without answering:

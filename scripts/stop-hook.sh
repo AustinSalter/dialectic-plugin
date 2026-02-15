@@ -28,6 +28,69 @@ LOOP=$(jq -r '.loop // "reasoning"' "$STATE_FILE" 2>/dev/null)
 DIST_ITER=$(jq -r '.distillation_iteration // 1' "$STATE_FILE" 2>/dev/null)
 DIST_MAX=$(jq -r '.distillation_max // 3' "$STATE_FILE" 2>/dev/null)
 
+# Artifact name → filename mapping
+declare -A ARTIFACT_MAP=(
+  [memo]="memo-final.md"
+  [spine]="spine.yaml"
+  [history]="thesis-history.md"
+  [prompt]="prompt.md"
+  [scratchpad]="scratchpad.md"
+  [draft]="memo-draft.md"
+  [state]="state.json"
+)
+
+preserve_artifacts() {
+  local state_dir="$1"
+  local output_dir="$2"
+  local artifact_names="$3"  # comma-separated
+  local session_id="$4"
+
+  # Handle "none"
+  if echo "$artifact_names" | grep -qw "none"; then
+    return 1
+  fi
+
+  # Handle "all"
+  if echo "$artifact_names" | grep -qw "all"; then
+    artifact_names="memo,spine,history,prompt,scratchpad,draft,state"
+  fi
+
+  local session_dir="$output_dir/$session_id"
+  mkdir -p "$session_dir"
+
+  local copied=""
+  IFS=',' read -ra NAMES <<< "$artifact_names"
+  for name in "${NAMES[@]}"; do
+    name=$(echo "$name" | xargs)  # trim whitespace
+    local filename="${ARTIFACT_MAP[$name]}"
+    if [ -z "$filename" ]; then
+      continue
+    fi
+    local src="$state_dir/$filename"
+    if [ -f "$src" ]; then
+      cp "$src" "$session_dir/$filename"
+      if [ -n "$copied" ]; then
+        copied="$copied, \"$filename\""
+      else
+        copied="\"$filename\""
+      fi
+    fi
+  done
+
+  # Write manifest
+  cat > "$session_dir/manifest.json" << MANIFEST_EOF
+{
+  "session_id": "$session_id",
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "artifacts": [$copied],
+  "reasoning_iterations": $ITERATION,
+  "final_confidence": $CONFIDENCE
+}
+MANIFEST_EOF
+
+  echo "$session_dir"
+}
+
 # ============================================================
 # REASONING LOOP
 # ============================================================
@@ -60,6 +123,22 @@ if [ "$LOOP" = "reasoning" ]; then
       echo "Reasoning loop complete. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. Extract the reasoning spine from the scratchpad, then draft the conviction memo. Read state from .claude/dialectic/state.json." >&2
       exit 2
     fi
+  fi
+
+  # Check for elevation — reframe thesis entirely
+  if [ "$DECISION" = "elevate" ] || [ "$DECISION" = "ELEVATE" ]; then
+    NEW_ITERATION=$((ITERATION + 1))
+    jq ".iteration = $NEW_ITERATION | .phase = \"expansion\" | .decision = null" "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+    echo ""
+    echo "================================================"
+    echo "  ELEVATE — thesis needs fundamental reframe"
+    echo "  Iteration $NEW_ITERATION / $MAX_ITERATIONS"
+    echo "================================================"
+
+    echo "The critique determined the thesis needs elevation — a fundamental reframe. Read the elevated thesis from the critique output in scratchpad.md (look for the if_elevate block). Adopt the elevated thesis as your new working thesis, update state.json, and begin a fresh expansion pass from the new frame." >&2
+    exit 2
   fi
 
   # Check iteration limit — force transition to distillation
@@ -103,13 +182,23 @@ if [ "$LOOP" = "reasoning" ]; then
 elif [ "$LOOP" = "distillation" ]; then
 
   if [ "$DECISION" = "conclude" ] || [ "$DECISION" = "CONCLUDE" ]; then
-    # Distillation complete — clean up and exit
+    # Distillation complete — preserve artifacts, clean up, and exit
     echo ""
     echo "================================================"
     echo "  Distillation complete! Memo finalized."
     echo "  Reasoning iterations: $ITERATION"
     echo "  Distillation iterations: $DIST_ITER"
     echo "  Final confidence: $CONFIDENCE"
+
+    # Preserve artifacts before cleanup
+    OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
+    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history"]) | join(",")' "$STATE_FILE" 2>/dev/null)
+    SESSION_ID=$(jq -r '.session_id // "dialectic-unknown"' "$STATE_FILE" 2>/dev/null)
+    SAVED_TO=$(preserve_artifacts "$STATE_DIR" "$OUTPUT_DIR" "$KEEP_ARTIFACTS" "$SESSION_ID")
+    if [ -n "$SAVED_TO" ]; then
+      echo "  Artifacts saved to: $SAVED_TO"
+    fi
+
     echo "================================================"
     rm -rf "$STATE_DIR"
     exit 0
@@ -141,6 +230,6 @@ elif [ "$LOOP" = "distillation" ]; then
   echo "  Phase: $PHASE"
   echo "================================================"
 
-  echo "Continue the distillation loop. Run fidelity check and clarity check against the current draft. Revise if either fails. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md." >&2
+  echo "Continue the distillation loop. Run all five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) and the Compression Gate against the current draft. Revise if any probe fails or the gate is incomplete. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md." >&2
   exit 2
 fi

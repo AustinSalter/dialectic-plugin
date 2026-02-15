@@ -61,6 +61,54 @@ function blockStop(reason) {
   process.exit(2);
 }
 
+// Artifact name → filename mapping
+const ARTIFACT_MAP = {
+  memo: "memo-final.md",
+  spine: "spine.yaml",
+  history: "thesis-history.md",
+  prompt: "prompt.md",
+  scratchpad: "scratchpad.md",
+  draft: "memo-draft.md",
+  state: "state.json",
+};
+
+function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
+  // Resolve "all" and "none"
+  if (artifactNames.includes("none")) return null;
+  if (artifactNames.includes("all")) {
+    artifactNames = Object.keys(ARTIFACT_MAP);
+  }
+
+  const sessionDir = path.join(outputDir, sessionId);
+  fs.mkdirSync(sessionDir, { recursive: true });
+
+  const copied = [];
+  for (const name of artifactNames) {
+    const filename = ARTIFACT_MAP[name];
+    if (!filename) continue;
+    const src = path.join(stateDir, filename);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(sessionDir, filename));
+      copied.push(filename);
+    }
+  }
+
+  // Write manifest
+  const manifest = {
+    session_id: sessionId,
+    timestamp: new Date().toISOString(),
+    artifacts: copied,
+    reasoning_iterations: iteration,
+    final_confidence: confidence,
+  };
+  fs.writeFileSync(
+    path.join(sessionDir, "manifest.json"),
+    JSON.stringify(manifest, null, 2)
+  );
+
+  return sessionDir;
+}
+
 // ============================================================
 // REASONING LOOP
 // ============================================================
@@ -97,6 +145,25 @@ if (loop === "reasoning") {
         `Reasoning loop complete. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. Extract the reasoning spine from the scratchpad, then draft the conviction memo. Read state from .claude/dialectic/state.json.`
       );
     }
+  }
+
+  // Check for elevation — reframe thesis entirely
+  if (decision === "elevate") {
+    const newIteration = iteration + 1;
+    state.iteration = newIteration;
+    state.phase = "expansion";
+    state.decision = null;
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  ELEVATE — thesis needs fundamental reframe");
+    log(`  Iteration ${newIteration} / ${maxIterations}`);
+    log("================================================");
+
+    blockStop(
+      `The critique determined the thesis needs elevation — a fundamental reframe. Read the elevated thesis from the critique output in scratchpad.md (look for the if_elevate block). Adopt the elevated thesis as your new working thesis, update state.json, and begin a fresh expansion pass from the new frame.`
+    );
   }
 
   // Check iteration limit — force transition to distillation
@@ -144,13 +211,23 @@ if (loop === "reasoning") {
   const distMax = state.distillation_max || 3;
 
   if (decision === "conclude") {
-    // Distillation complete — clean up and exit
+    // Distillation complete — preserve artifacts, clean up, and exit
     log("");
     log("================================================");
     log("  Distillation complete! Memo finalized.");
     log(`  Reasoning iterations: ${iteration}`);
     log(`  Distillation iterations: ${distIter}`);
     log(`  Final confidence: ${confidence}`);
+
+    // Preserve artifacts before cleanup
+    const outputDir = state.output_dir || ".dialectic-output/";
+    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history"];
+    const sessionId = state.session_id || "dialectic-" + Date.now();
+    const savedTo = preserveArtifacts(STATE_DIR, outputDir, keepArtifacts, sessionId);
+    if (savedTo) {
+      log(`  Artifacts saved to: ${savedTo}`);
+    }
+
     log("================================================");
     fs.rmSync(STATE_DIR, { recursive: true, force: true });
     process.exit(0);
@@ -183,6 +260,6 @@ if (loop === "reasoning") {
   log("================================================");
 
   blockStop(
-    `Continue the distillation loop. Run fidelity check and clarity check against the current draft. Revise if either fails. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md.`
+    `Continue the distillation loop. Run all five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) and the Compression Gate against the current draft. Revise if any probe fails or the gate is incomplete. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md.`
   );
 }

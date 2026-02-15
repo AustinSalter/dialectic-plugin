@@ -1,6 +1,6 @@
 ---
 description: Multi-pass dialectic reasoning with expansion, compression, and critique cycles
-argument-hint: <thesis or question> [--min-iterations=N] [--max-iterations=N]
+argument-hint: <thesis or question> [--min-iterations=N] [--max-iterations=N] [--output=<dir>] [--keep=<list>]
 ---
 
 # Dialectic Reasoning
@@ -18,11 +18,18 @@ Check if `.claude/dialectic/state.json` exists:
 Parse `$ARGUMENTS` for optional flags before the thesis text:
 - `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 2)
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
+- `--output=<dir>` — Directory for preserved artifacts (default: `.dialectic-output/`)
+- `--keep=<list>` — Comma-separated artifact names to preserve on completion (default: `memo,spine,history`)
+
+Valid `--keep` values: `memo` (memo-final.md), `spine` (spine.yaml), `history` (thesis-history.md), `prompt` (prompt.md), `scratchpad` (scratchpad.md), `draft` (memo-draft.md), `state` (state.json), `all` (everything), `none` (skip preservation).
+
+Artifacts are saved to `.dialectic-output/` by default. Add this to `.gitignore` if you don't want analysis results in version control.
 
 Extract the thesis/question text (everything that isn't a flag). Examples:
 - `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5
 - `/dialectic:dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"` → min=4, max=5
 - `/dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"` → min=3, max=7
+- `/dialectic:dialectic --keep=all --output=test-out/ "Where should VCs deploy capital in AI?"` → preserves all artifacts to `test-out/`
 
 ### Initial State (create if not exists)
 
@@ -45,7 +52,9 @@ Create the directory `.claude/dialectic/` and write `state.json`:
     "supporting": [],
     "challenging": []
   },
-  "decision": null
+  "decision": null,
+  "output_dir": "<parsed or default .dialectic-output/>",
+  "keep_artifacts": ["memo", "spine", "history"]
 }
 ```
 
@@ -53,60 +62,25 @@ Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
 
 ## Step 2: EXPANSION Pass (Thesis)
 
-**For detailed expansion instructions, see `skills/dialectic/EXPANSION.md`**
+Run the full expansion protocol in `skills/dialectic/EXPANSION.md`. Do not skip frame selection.
 
-Explore broadly. Use semantic markers (see `skills/dialectic/MARKERS.md`):
-- `[INSIGHT]` - Non-obvious conclusion
-- `[EVIDENCE]` - Specific data point
-- `[COUNTER]` - Argument against thesis
-- `[TENSION]` - Conflicting evidence
-- `[THREAD]` - Worth exploring further
-
-Append expansion output to `.claude/dialectic/scratchpad.md`.
+Append all expansion output to `.claude/dialectic/scratchpad.md`.
 
 ## Step 3: COMPRESSION Pass (Antithesis)
 
-**For detailed compression instructions, see `skills/dialectic/COMPRESSION.md`**
+Run the full compression protocol in `skills/dialectic/COMPRESSION.md`. Use the 3D confidence model — do not default to scalar.
 
-Synthesize expansion findings:
-1. Update thesis if evidence warrants
-2. Update confidence (can go UP or DOWN - non-monotonic!)
-3. Identify next priority question
-4. Update state.json with new values
-
-Add confidence to `thesis.confidence_history` before updating current confidence.
+Add previous confidence to `thesis.confidence_history` before updating state.json.
 
 ## Step 4: CRITIQUE Pass (Sublation)
 
-**For detailed critique protocol, see `skills/dialectic/CRITIQUE.md`**
-
-Apply these questioning techniques:
-1. **Inversion**: What if the opposite were true?
-2. **Second-Order**: What are downstream effects?
-3. **Falsification**: What evidence would disprove this?
-4. **Base Rates**: What do historical priors suggest?
-
-Then decide:
-- **CONTINUE**: Evidence gaps addressable, iterate again
-- **CONCLUDE**: Thesis robust, ready for synthesis
-- **ELEVATE**: Need to reframe the thesis entirely
+Run the full critique protocol in `skills/dialectic/CRITIQUE.md`. Do not substitute a lighter version.
 
 Write decision to state.json `decision` field (lowercase: "continue", "conclude", or "elevate").
 
-## Step 5: Check Termination
+## Step 5: Update Thesis History
 
-**Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
-
-If decision is "conclude" AND iteration >= min_iterations, OR iteration >= max_iterations:
-- Do NOT run synthesis inline
-- The stop hook will transition to the distillation loop automatically
-- Just end your current response normally
-
-If decision is "continue" (or overridden from conclude):
-- The stop hook will automatically re-feed the prompt
-- Just end your current response normally
-
-## Step 6: Update Thesis History
+**Always write thesis history before checking termination.** The distillation loop depends on a complete thesis-history.md.
 
 After each iteration, append to `.claude/dialectic/thesis-history.md`:
 ```
@@ -120,6 +94,19 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 
 ---
 ```
+
+## Step 6: Check Termination
+
+**Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
+
+If decision is "conclude" AND iteration >= min_iterations, OR iteration >= max_iterations:
+- Do NOT run synthesis inline
+- The stop hook will transition to the distillation loop automatically
+- Just end your current response normally
+
+If decision is "continue" (or overridden from conclude):
+- The stop hook will automatically re-feed the prompt
+- Just end your current response normally
 
 ## Step 7: Distillation Loop (automatic — triggered by stop hook)
 
