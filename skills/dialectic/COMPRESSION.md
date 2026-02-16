@@ -86,7 +86,22 @@ Contradiction addressed        → E = E + 0.10
 
 ### C — Domain Determinacy: What are the limits of this claim?
 
-C measures how much certainty the *domain* permits. C is **discovered, not optimized** — if C drifts upward across iterations without new evidence, that's motivated reasoning. More iterations don't reduce ontological uncertainty.
+C measures how much certainty the *domain* permits, independent of your argument. C reflects outcome variance, NOT argument quality. A brilliant argument about an unpredictable domain still gets low C. C should NOT track R — sound reasoning doesn't make geopolitics predictable.
+
+C is **discovered, not optimized** — if C drifts upward across iterations without new evidence, that's motivated reasoning. More iterations don't reduce ontological uncertainty.
+
+**C Calibration Anchors** (use these, not vibes):
+
+| C Value | Domain Profile | Example |
+|---------|---------------|---------|
+| 0.2–0.3 | Maximally uncertain: geopolitics, multi-decade timelines, many actors with veto power, precedents don't bind | "Will sovereign AI programs succeed over 15 years?" |
+| 0.3–0.4 | High uncertainty: emerging markets, regulatory outcomes, technology adoption curves with unknown inflections | "Will open-source AI licensing remain permissive?" |
+| 0.4–0.5 | Moderate uncertainty: established markets with known dynamics but genuine strategic unknowns | "Will this SaaS company reach profitability before runway ends?" |
+| 0.5–0.6 | Moderate determinacy: historical patterns provide grounding, key variables are observable | "Will this acquisition generate synergies within 3 years?" |
+| 0.6–0.7 | High determinacy: well-understood domain, bounded outcomes, strong precedent | "Will cutting prices increase volume in a commodity market?" |
+| 0.7+ | Very high determinacy: physics, math, settled economics. Rare in strategy questions. | "Will doubling server capacity reduce latency?" |
+
+**Self-check**: If C > 0.45 on a geopolitical, multi-stakeholder, or 10+ year question, justify explicitly why this domain is more predictable than it appears. The default for wicked problems is C ≤ 0.4.
 
 C does not drive iteration. C drives **how you hold the claim**:
 

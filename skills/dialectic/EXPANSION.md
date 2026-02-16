@@ -24,6 +24,18 @@ Not what it claims—what concern motivates it.
 | TOO GRANULAR | Accurate details, no pattern | "Their API docs are better" |
 | RIGHT LEVEL | Mechanism + transferability | ​"Developer adoption creates compounding switching costs" |
 | TOO ABSTRACT | Pattern named, no mechanism | "They have network effects" |
+| TOO ABSTRACT | Action prescribed, no causal path | "We should vertically integrate to control costs" (integrate what? through what mechanism? why does ownership reduce costs here?) |
+
+**Altitude test for action-prescribing theses**: If the thesis prescribes an action ("build X", "invest in Y", "ban Z"), list the causal steps between the action and the claimed outcome. Write them out:
+
+```
+Action: [what the thesis prescribes]
+Step 1: [first thing that happens]
+Step 2: [what that causes]
+Step 3: [how that produces the claimed outcome]
+```
+
+If you cannot list 3+ concrete steps, the thesis is **TOO ABSTRACT** even if it sounds specific. "Vertically integrate" sounds like a strategy but skips the causal chain: acquire supplier → ??? → lower costs. The missing middle is the altitude problem. Mark `altitude: TOO_ABSTRACT` and identify where the causal chain breaks.
 
 **Which domain applies?**
 

@@ -40,7 +40,7 @@ Create the directory `.claude/dialectic/` and write `state.json`:
   "prompt": "<extracted thesis text>",
   "iteration": 1,
   "loop": "reasoning",
-  "min_iterations": <parsed or default 2>,
+  "min_iterations": <parsed or default 3>,
   "max_iterations": <parsed or default 5>,
   "phase": "expansion",
   "thesis": {
@@ -103,25 +103,18 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 
 **Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
 
-If decision is "conclude" AND iteration >= min_iterations, OR iteration >= max_iterations:
-- Do NOT run synthesis inline
-- The stop hook will transition to the distillation loop automatically
-- Just end your current response normally
+After writing the thesis history entry and updating state.json, **stop responding**. Do not write anything else. Do not begin distillation, synthesis, or any other phase. The stop hook handles all transitions — it will read state.json and re-feed you with the correct next instruction.
 
-If decision is "continue" (or overridden from conclude):
-- The stop hook will automatically re-feed the prompt
-- Just end your current response normally
+This applies to ALL decisions:
+- **CONCLUDE**: Stop. The hook transitions to distillation.
+- **CONTINUE**: Stop. The hook increments the iteration and re-feeds.
+- **ELEVATE**: Stop. The hook re-feeds with the elevation prompt.
+
+**Do not write transition headers, do not set `loop: "distillation"` yourself, do not begin the next phase.** The stop hook owns transitions.
 
 ## Step 7: Distillation Loop (automatic — triggered by stop hook)
 
-When the stop hook transitions to the distillation loop, follow the instructions in `skills/dialectic/DISTILLATION.md`.
-
-The distillation loop:
-1. Extracts a reasoning spine from the scratchpad (first iteration only)
-2. Drafts a conviction memo targeting the format in `skills/dialectic/SYNTHESIS.md`
-3. Runs fidelity check (spine coverage) and clarity check (spec compliance)
-4. Revises until both checks pass or max distillation iterations reached
-5. Outputs `[ANALYSIS_COMPLETE]` when done
+You will only reach this step when the stop hook feeds you a distillation prompt. Follow `skills/dialectic/DISTILLATION.md`. Each distillation iteration is also a separate response — draft or revise, then stop. The hook re-feeds for the next iteration.
 
 ## Output Format
 

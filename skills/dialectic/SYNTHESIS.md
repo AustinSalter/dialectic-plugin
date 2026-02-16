@@ -4,7 +4,7 @@
 
 Final output production. Goal: **incisive recommendation with conviction and actionability**.
 
-**Target output: 800-1200 words.** Long enough to ground the insight, short enough to scan.
+**No word count target.** Cut every unnecessary word. If a sentence doesn't change what the reader *does*, it doesn't belong. The reader is always important — they don't have time and they don't owe you attention. Sections that restate other sections are redundancy, not emphasis. Complexity earns space; repetition doesn't.
 
 ## The Problem: Bad Infinity
 
@@ -17,115 +17,59 @@ Most synthesis falls into "Bad Infinity" — endless "on the one hand, on the ot
 | "Moderate confidence reflects tension" | "High conviction until trigger Z" |
 | Preserve both sides | Commit, with explicit off-ramps |
 
-## Core Principle: Bayesian Boldness
+## Core Principle
 
-**Probability is for calculation. Conviction is for execution.**
-
-- During analysis (Pass 1-N): Use 3D Confidence (R,E,C) honestly
-- During synthesis: Convert probability into **singular directive**
-- If composite confidence is 0.70, don't act 70% sure — **act 100% sure within the 70% likelihood window**
+**Probability is for calculation. Conviction is for execution.** During analysis: use 3D Confidence (R,E,C) honestly. During synthesis: convert uncertainty into a singular directive with named exit conditions. The reader doesn't need your confidence interval. They need to know what to do, why, and when to stop.
 
 ---
 
-## Required Output Format
+## Required Sections
 
 ### 1. Headline Insight
 
-Lead with the punchline. One sentence maximum. This is the "tweet" version.
+The *propositio*: the claim compressed to a sentence. This is an enthymeme — the conclusion with enough of the argument that the reader can reconstruct the rest. If the reader needs more than one sentence to understand the recommendation, the analysis hasn't converged.
 
-**Good**: "Distribution controls value; content moats are illusory without traffic control."
-**Bad**: "This analysis examines the strategic implications of Yahoo's decision..."
+Test: *is this falsifiable?* "Distribution controls value" is. "This is a complex situation" is not.
 
 ### 2. Situation
 
-2-3 sentences of context. What decision, what stakes, why now.
+The *narratio*: only what the reader needs to evaluate the claim. What decision, what stakes, why now. Not background — decision context.
 
-**Good**: "Yahoo faces a $3B acquisition decision for Google. Search is 35% of Yahoo's traffic but outsourced. Google is growing 100%+ YoY."
-**Bad**: "Yahoo is an internet company founded in 1994..."
+Test: *if you removed a sentence, would the reader evaluate the Headline differently?* If no, the sentence is decoration.
 
 ### 3. The Leap
 
-The single incisive shift that resolves the essential tension.
+The altitude shift the analysis discovered. This is where the memo earns its existence — the insight the reader couldn't have reached without the reasoning loop. The Leap must *surprise*. If the reader could have predicted it from the Headline and Situation alone, it's a restatement, not a leap.
 
-**Good**: "You cannot claim content is your moat while outsourcing the traffic source. Yahoo's white-label behavior already revealed search isn't commodity."
-**Bad**: "Both content and distribution matter in complex ways."
+Test: *does this change the reader's frame, or confirm it?* A memo that confirms priors is a waste of everyone's time.
 
 ### 4. Brief Refutatio
 
-2-3 sentences maximum. State the strongest counter-argument with charity, then explain why you commit anyway. This is NOT a full "on the other hand" section.
+The strongest objection, stated with charity, and why you commit anyway. One objection. The purpose isn't to catalog counter-arguments — it's to demonstrate that the strongest one was absorbed, not amputated. This is the Elevation Test from CRITIQUE.md in its final form: the counter-argument that *strengthened* the thesis.
 
-**Good**: "The reasonable counter: Google's founders might refuse any price, and integration could destroy value through culture clash. We commit anyway because the cost of inaction (Google as competitor) exceeds the cost of failed integration (write-off)."
-**Bad**: "There are several important counter-arguments to consider. First... Second... Third..."
+Test: *would a smart opponent feel their best argument was represented?*
 
 ### 5. The Bet
 
-State what you're betting on and why the mechanism supports it:
+`We bet [X] > [Y] because [Mechanism].`
 
-```
-We bet [X] > [Y] because [Mechanism].
-```
+The bet names the mechanism. Not "we think X is better" — *why* X is better, structurally. The mechanism is what makes the bet falsifiable and what makes it a bet rather than an opinion.
 
-**Good**: "We bet platform control > content quality because network effects compound while content advantages erode."
-**Bad**: "Platform control seems important but content also matters."
+### 6. First Move
 
-### 6. Implementation Protocol
-
-Concrete actions, not abstract recommendations. Freeform based on context.
-
-**Immediate (this week)**: 2-3 specific actions someone could do Monday
-**Near-term (30 days)**: Milestone with observable success criteria
-**Decision Gates**: If/then pivots with specific triggers
-
-**Good**:
-```
-**Immediate**:
-- Schedule board meeting to authorize acquisition talks
-- Engage Goldman Sachs for independent valuation
-- Draft term sheet with $3B floor, $5B ceiling
-
-**Near-term (30 days)**:
-- Term sheet delivered to Google by Feb 15
-- Diligence complete by Mar 1
-- Talent retention packages designed for key engineers
-
-**Decision Gates**:
-- If Google counters above $5B → escalate to full board for ceiling discussion
-- If Page/Brin signal unwillingness to stay → pivot to acqui-hire structure
-```
-
-**Bad**:
-- "Consider strategic options"
-- "Monitor the situation"
-- "Align stakeholders"
+What to do Monday. What to check at 30 days. What would change the plan. Three lines, not three sections. The CEO delegates everything after the first move — they need to know *where to point*, not the full route.
 
 ### 7. Disconfirmation Triggers
 
-2-3 specific, observable conditions that would flip the recommendation:
-
-**Good**:
-- "If Google's market share declines for 2+ consecutive quarters"
-- "If Yahoo internal search achieves <10% quality gap in blind tests"
-
-**Bad**:
-- "If competition increases"
-- "If the market changes"
+Observable, specific conditions that would flip the recommendation. This is what separates a conviction memo from an opinion piece. If you can't name what would make you change your mind, you haven't made a real recommendation — you've made a wish.
 
 ### 8. Verdict Table
 
-Close with a scannable summary. This replaces prose conclusions.
+The thing the reader actually reads. Everything above is support for this table.
 
 | Recommendation | Conviction | Decision Window | Key Constraint | Revisit Trigger |
 |----------------|------------|-----------------|----------------|-----------------|
 | [ACTION VERB]  | High/Med/Low | [Timeframe]   | [Binding limit]| [Observable]    |
-
-**Column definitions**:
-| Column | Purpose | Examples |
-|--------|---------|----------|
-| Recommendation | Action verb | ACQUIRE, FIGHT, INVEST, EXIT, PIVOT, HOLD, TRANSFORM |
-| Conviction | Commitment level | High, Medium, Low |
-| Decision Window | When to act (not when outcome occurs) | 90 days, Immediate, Q2 2026, 18 months |
-| Key Constraint | Binding limit that shapes execution | $5B ceiling, 15% of budget, price-match only |
-| Revisit Trigger | Observable condition that reopens decision | Counter > $5B, share loss > 5pts, cash < 6mo |
 
 ---
 
@@ -152,22 +96,11 @@ The reasonable counter: $3B is 12.5x revenue for an unproven company, and integr
 
 We bet platform control > content quality because network effects compound while content advantages erode. Search quality improvements compound (better results → more users → more data → better results). Content can be replicated; the traffic source cannot.
 
-## Implementation Protocol
+## First Move
 
-**Immediate**:
-- Schedule board meeting to authorize acquisition negotiations
-- Engage Goldman Sachs for independent valuation ($1-5B range scenarios)
-- Assign integration team lead; begin culture assessment
-
-**Near-term (30 days)**:
-- Term sheet to Google by Feb 15 ($3B with $1B earnout structure)
-- Diligence on engineering talent retention risk
-- Draft Page/Brin retention packages (equity + autonomy guarantees)
-
-**Decision Gates**:
-- If Google counters above $5B → full board discussion on ceiling
-- If Page/Brin signal unwillingness to remain → pivot to talent acqui-hire framing
-- If Microsoft announces competing bid → accelerate timeline, consider preemptive raise
+**Monday**: Schedule board meeting to authorize acquisition negotiations at $3B with $1B earnout structure.
+**30-day check**: Term sheet delivered to Google; Page/Brin retention packages drafted.
+**Gate**: If Google counters above $5B → full board discussion on ceiling.
 
 ## Disconfirmation Triggers
 
@@ -186,11 +119,41 @@ We bet platform control > content quality because network effects compound while
 
 ---
 
-## Anti-Patterns
+## Distillation Loop (Minimum 2 Passes)
 
-**Don't say**: "This analysis suggests a balanced approach..."
-**Say instead**: "The winning move is X. We bet Y because Z."
+Distillation is a loop, not a single pass. The first draft is never the final memo.
 
-**Don't say**: "There are merits to both positions..."
-**Say instead**: "[Brief counter]. We commit because [mechanism]."
+**Pass 1**: Spine extraction → draft memo → run distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) → compression gate.
+
+**Pass 2+**: Revise based on probe findings → re-run probes → compression gate.
+
+**Minimum**: 2 full passes before the memo can be promoted to final. This is mandatory even if all probes pass on the first draft. First-pass probes are lenient because the model is still in the glow of having just written the draft.
+
+**Second-pass probe behavior**: On pass 2+, probes should be *adversarial*, not confirmatory:
+
+| Probe | Pass 1 Question | Pass 2+ Question |
+|-------|----------------|-------------------|
+| Sufficiency | Could a reader act on this? | Could a *skeptical* reader act on the First Move section without further guidance? Name one action that's too vague. |
+| Conviction-Ink | Does every sentence advance the argument? | Find the weakest sentence. Can it be cut or sharpened? |
+| Tension | Are counter-arguments handled? | Is the refutatio engaging the *strongest* counter, or a convenient one? |
+| Trace | Do memo claims trace to spine? | Is the spine's central move (usually altitude shift) the *lead* of the memo, or buried? |
+| Threads | Are argument threads held simultaneously? | Remove one thread — does the argument collapse? If not, that thread is decoration. |
+
+**Exit condition**: Pass 2+ probes produce zero substantive revisions (only cosmetic changes). If any probe on pass 2 generates a revision that changes the argument, run pass 3.
+
+**Maximum**: 4 distillation passes. If not converged by pass 4, promote with a note on what remains unresolved.
+
+## Redundancy Check
+
+Before finalizing, test every section against every other section. If two sections make the same point, one of them is redundant. The Bet should not restate the Leap. The Disconfirmation Triggers should not restate the Decision Gate. The Situation should not contain evidence that belongs in the Leap. Each section has one job. If it's doing another section's job, cut the duplicate.
+
+## Completion Token
+
+End synthesis with exactly:
+
+```
+[ANALYSIS_COMPLETE]
+```
+
+No text after this token.
 

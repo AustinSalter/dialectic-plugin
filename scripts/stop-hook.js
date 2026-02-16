@@ -43,7 +43,7 @@ try {
 const loop = state.loop || "reasoning";
 const decision = (state.decision || "").toLowerCase();
 const iteration = state.iteration || 0;
-const minIterations = state.min_iterations || 2;
+const minIterations = state.min_iterations || 3;
 const maxIterations = state.max_iterations || 5;
 // 3D Confidence: R (defensibility), E (evidence saturation), C (domain determinacy)
 const conf = (state.thesis && state.thesis.confidence) || {};
@@ -140,7 +140,7 @@ if (loop === "reasoning") {
       log("================================================");
       state.loop = "distillation";
       state.distillation_iteration = 1;
-      state.distillation_max = 3;
+      state.distillation_max = 4;
       state.decision = null;
       state.distillation_phase = "spine_extraction";
       writeState(state);
@@ -153,21 +153,35 @@ if (loop === "reasoning") {
 
   // Check for elevation — reframe thesis entirely
   if (decision === "elevate") {
-    const newIteration = iteration + 1;
-    state.iteration = newIteration;
-    state.phase = "expansion";
-    state.decision = null;
-    writeState(state);
+    // Evidence gate: ELEVATE requires E >= 0.4 (CRITIQUE.md rule)
+    if (E < 0.4) {
+      log("");
+      log("================================================");
+      log("  ELEVATE blocked — evidence gate failed");
+      log(`  E=${E} < 0.4. Not enough evidence to know the right altitude.`);
+      log("  Downgrading to CONTINUE with altitude_suspect flag.");
+      log("================================================");
+      state.decision = "continue";
+      writeState(state);
+      // Fall through to continue block
+    } else {
+      const newIteration = iteration + 1;
+      state.iteration = newIteration;
+      state.phase = "expansion";
+      state.decision = null;
+      writeState(state);
 
-    log("");
-    log("================================================");
-    log("  ELEVATE — thesis needs fundamental reframe");
-    log(`  Iteration ${newIteration} / ${maxIterations}`);
-    log("================================================");
+      log("");
+      log("================================================");
+      log("  ELEVATE — thesis needs fundamental reframe");
+      log(`  Iteration ${newIteration} / ${maxIterations}`);
+      log(`  Evidence gate passed: E=${E} >= 0.4`);
+      log("================================================");
 
-    blockStop(
-      `The critique determined the thesis needs elevation — a fundamental reframe. Read the elevated thesis from the critique output in scratchpad.md (look for the if_elevate block). Adopt the elevated thesis as your new working thesis, update state.json, and begin a fresh expansion pass from the new frame.`
-    );
+      blockStop(
+        `The critique determined the thesis needs elevation — a fundamental reframe. Read the elevated thesis from the critique output in scratchpad.md (look for the if_elevate block). Adopt the elevated thesis as your new working thesis, update state.json, and begin a fresh expansion pass from the new frame.`
+      );
+    }
   }
 
   // Check iteration limit — force transition to distillation
@@ -179,7 +193,7 @@ if (loop === "reasoning") {
     log("================================================");
     state.loop = "distillation";
     state.distillation_iteration = 1;
-    state.distillation_max = 3;
+    state.distillation_max = 4;
     state.decision = null;
     state.distillation_phase = "spine_extraction";
     writeState(state);
@@ -212,7 +226,25 @@ if (loop === "reasoning") {
 } else if (loop === "distillation") {
 
   const distIter = state.distillation_iteration || 1;
-  const distMax = state.distillation_max || 3;
+  const distMax = state.distillation_max || 4;
+  const distMin = state.distillation_min || 2;
+
+  if (decision === "conclude" && distIter < distMin) {
+    // Enforce minimum distillation passes — first draft is never the final memo
+    log("");
+    log("================================================");
+    log("  CONCLUDE overridden — below distillation floor");
+    log(`  Distillation pass ${distIter} < min ${distMin}`);
+    log("  First-pass probes are lenient. Run adversarial pass.");
+    log("================================================");
+    state.decision = null;
+    state.distillation_iteration = distIter + 1;
+    writeState(state);
+
+    blockStop(
+      `Distillation pass ${distIter} is below the minimum (${distMin}). The first draft is never the final memo — first-pass probes are lenient. Re-run all five probes in ADVERSARIAL mode: Sufficiency (could a *skeptical* reader act on this?), Conviction-Ink (find the weakest sentence), Tension (is the refutatio engaging the *strongest* counter?), Trace (is the altitude shift the *lead*?), Threads (remove one thread — does the argument collapse?). Revise the memo based on findings. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md.`
+    );
+  }
 
   if (decision === "conclude") {
     // Distillation complete — preserve artifacts, clean up, and exit

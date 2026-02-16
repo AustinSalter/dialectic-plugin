@@ -30,15 +30,6 @@ Run all five against the framed thesis:
 
 **For domain-specific probes:** See patterns/{domain}.md
 
-## Elevation Test
-
-Counter-arguments that survive the probes must *change the thesis*, not just get noted. There are exactly two honest responses to a counter-argument that withstands scrutiny:
-
-1. **Elevate**: The thesis absorbs the objection and becomes stronger. The counter-argument reveals what the thesis was *actually* trying to say. (See Stripe example below — "copyable features" forces elevation from product thesis to infrastructure thesis.)
-2. **Weaken**: The thesis loses confidence. The counter-argument identified a genuine vulnerability that the current frame cannot resolve.
-
-The dishonest response is **amputation**: acknowledging the counter-argument exists, then proceeding as if it doesn't. Test: *if you removed your treatment of the strongest counter-argument, would anything else in the critique change?* If no, you amputated.
-
 ## Preservation Gate (Required)
 
 Cannot decide without answering:
@@ -49,22 +40,51 @@ Cannot decide without answering:
 
 *If you can't complete this, you haven't understood the thesis. Return to expansion.*
 
+## Elevation Test (Run Before Decision)
+
+Before choosing CONTINUE, CONCLUDE, or ELEVATE, check for **amputation** — the failure mode where counter-arguments are acknowledged but don't change anything.
+
+**Test**: Review each `[COUNTER]` from expansion. For each one, ask: *Did this counter-argument change the thesis, or was it acknowledged and set aside?*
+
+If a material counter was acknowledged without changing the thesis, name it explicitly:
+
+```yaml
+amputation_check:
+  amputated_counters:
+    - counter: "[the specific counter-argument]"
+      response: "[how the thesis responded]"
+      changed_thesis: false
+      should_it_have: "[yes/no and why]"
+```
+
+If `should_it_have: yes` for any counter → the thesis needs ELEVATE, not CONCLUDE. The thesis is absorbing hits without adapting — it's at the wrong altitude.
+
+## Evidence Gate for ELEVATE
+
+ELEVATE requires **E ≥ 0.4**. If the altitude appears wrong but E < 0.4, the critique doesn't have enough evidence to know what the right altitude *is*. Elevating on thin evidence produces a guess, not a grounded reframe.
+
+- E < 0.4 AND altitude suspect → **CONTINUE** with `altitude_suspect: true` and `data_needed` explaining what evidence would clarify the right altitude
+- E ≥ 0.4 AND altitude wrong → **ELEVATE** with full preservation gate
+
 ## Decision
 
 | Decision | When | Required Output |
 |----------|------|-----------------|
 | CONTINUE | Evidence gaps exist, addressable with data | What specific data resolves it? |
-| CONCLUDE | Thesis robust at right altitude | The bet + falsification trigger |
-| ELEVATE | Wrong altitude OR internal tension | Elevated thesis + what it preserves + what it resolves |
+| CONCLUDE | Thesis robust at right altitude, no amputated counters | The bet + falsification trigger |
+| ELEVATE | Wrong altitude OR amputated counters (requires E ≥ 0.4) | Elevated thesis + what it preserves + what it resolves |
 
 **CONCLUDE only when you can state:**
 - The bet: "X > Y because mechanism Z"
 - Falsification: What specific conditions would flip this?
+- Amputation check: No material counters were acknowledged without changing the thesis
 
 **ELEVATE requires:**
+- E ≥ 0.4 (evidence gate)
 - The elevated thesis (what it was reaching for)
 - What it preserves from original
 - What tension it resolves
+- Which amputated counter(s) the elevation integrates
 
 ## Output Format
 
