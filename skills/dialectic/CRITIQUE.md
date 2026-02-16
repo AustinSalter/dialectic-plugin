@@ -173,4 +173,4 @@ if_elevate:
 
 ## CRITICAL: Stop After Writing Decision
 
-After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), and appending to `thesis-history.md`, **stop responding immediately**. Do not begin distillation. Do not write the next phase header. Do not set `loop: "distillation"` yourself. The stop hook owns all transitions.
+After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), and appending to `thesis-history.md`, **stop responding immediately**. Do not write anything else. Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. Your response ends here — the stop hook reads `state.json` and handles what comes next.

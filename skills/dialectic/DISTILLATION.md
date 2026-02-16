@@ -75,7 +75,7 @@ Cannot conclude without answering:
 - Every counter-argument elevates rather than amputates
 - No sentence can be removed without structural loss
 
-Write decision to state.json `decision` field.
+Write decision to state.json `decision` field, then **stop responding**. The stop hook reads the decision and either allows exit (if passes ≥ minimum and decision is CONCLUDE) or re-feeds you for the next pass.
 
 ## Output Format
 
@@ -117,9 +117,16 @@ spine:
 
 Target format defined in `SYNTHESIS.md`. That file is the spec — headline, situation, leap, refutatio, bet, implementation, disconfirmation, verdict.
 
-800-1200 words is a *consequence*, not a target. Compress until removing one more word breaks structure. That's your length.
+Cut every unnecessary word. Compress until removing one more word breaks structure. That's your length.
 
 Write draft to `.claude/dialectic/memo-draft.md`. Write final to `.claude/dialectic/memo-final.md`.
+
+## CRITICAL: One Pass Per Response
+
+Each distillation pass is a separate response. After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding**. Do not begin the next pass. Do not promote to final without stopping first. The stop hook enforces the minimum pass requirement — it will re-feed you for the next pass.
+
+If this is pass 1: extract spine, draft memo, run probes, write decision, stop.
+If this is pass 2+: revise based on previous probe findings, re-run probes in adversarial mode, write decision, stop.
 
 ## Example: VC Capital Allocation (After 4 Reasoning Iterations)
 

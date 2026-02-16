@@ -112,9 +112,7 @@ This applies to ALL decisions:
 
 **Do not write transition headers, do not set `loop: "distillation"` yourself, do not begin the next phase.** The stop hook owns transitions.
 
-## Step 7: Distillation Loop (automatic — triggered by stop hook)
-
-You will only reach this step when the stop hook feeds you a distillation prompt. Follow `skills/dialectic/DISTILLATION.md`. Each distillation iteration is also a separate response — draft or revise, then stop. The hook re-feeds for the next iteration.
+There is no Step 7 in this file. The stop hook introduces the next phase. If you are looking for what comes after the reasoning loop, the answer is: stop, and the hook will tell you.
 
 ## Output Format
 
