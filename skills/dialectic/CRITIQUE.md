@@ -168,3 +168,9 @@ if_elevate:
 | Financial | Model regime, correlation, counterparty, incentives | patterns/financial.md |
 | Policy | Implementation gap, precedent validity, institutional response | patterns/policy.md |
 | Disruption | Incumbent response, cost curve, metric shift, physics vs politics | patterns/disruption.md |
+
+---
+
+## CRITICAL: Stop After Writing Decision
+
+After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), and appending to `thesis-history.md`, **stop responding immediately**. Do not begin distillation. Do not write the next phase header. Do not set `loop: "distillation"` yourself. The stop hook owns all transitions.

@@ -84,6 +84,10 @@ Contradicting evidence found   → E = E - 0.15
 Contradiction addressed        → E = E + 0.10
 ```
 
+**Per-iteration cap**: E delta must not exceed **0.15** in a single iteration. If multiple novel evidence sources are found, rank them by impact — the strongest gets the full increment, subsequent sources get half credit, then quarter credit. This prevents a single research-heavy iteration from inflating E past saturation.
+
+Example: Three novel sources found → +0.08 + 0.04 + 0.02 = +0.14 (under cap).
+
 ### C — Domain Determinacy: What are the limits of this claim?
 
 C measures how much certainty the *domain* permits, independent of your argument. C reflects outcome variance, NOT argument quality. A brilliant argument about an unpredictable domain still gets low C. C should NOT track R — sound reasoning doesn't make geopolitics predictable.
@@ -129,3 +133,9 @@ R and E drive whether you continue. C drives how you write the conclusion.
 **CONCLUDE**: R ≥ 0.7 AND E saturated (delta < 0.05 for 2 cycles or no productive threads). Do not wait for C to rise.
 
 **ELEVATE**: R and E adequate but C contradicts the evidence pattern.
+
+---
+
+## CRITICAL: Stop After Writing Decision
+
+After writing your compression output and updating `state.json` with confidence values and `termination.should_continue`, **stop responding immediately**. Do not begin the next phase. Do not write transition headers. The stop hook owns all transitions — it reads `state.json` and re-feeds the correct prompt.
