@@ -181,3 +181,9 @@ spine:
 1. Lost: Specific sector TAM numbers, individual company valuations, historical platform shift details → Acceptable loss (supporting detail, not decision-relevant)
 2. Elevated: "AI bubble risk" → becomes "correction-survival *validates* the seed/moat strategy" — the risk makes the thesis stronger
 3. Shortest version: Removed "this is similar to cybersecurity post-GDPR" — analogy adds color but not structure
+
+---
+
+## CRITICAL: Stop After Each Distillation Pass
+
+After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding immediately**. Do not begin the next pass. Do not promote a draft to final without stopping first. Do not set `loop: "complete"` yourself. Do not remove evidence from state. The stop hook owns all transitions — it reads `state.json`, enforces the minimum pass requirement, and re-feeds you for the next pass or finalizes the session.
