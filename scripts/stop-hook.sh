@@ -42,16 +42,19 @@ else
   C="$LEGACY"
 fi
 
-# Artifact name → filename mapping
-declare -A ARTIFACT_MAP=(
-  [memo]="memo-final.md"
-  [spine]="spine.yaml"
-  [history]="thesis-history.md"
-  [prompt]="prompt.md"
-  [scratchpad]="scratchpad.md"
-  [draft]="memo-draft.md"
-  [state]="state.json"
-)
+# Artifact name → filename mapping (function for bash 3.2 compatibility)
+artifact_filename() {
+  case "$1" in
+    memo)       echo "memo-final.md" ;;
+    spine)      echo "spine.yaml" ;;
+    history)    echo "thesis-history.md" ;;
+    prompt)     echo "prompt.md" ;;
+    scratchpad) echo "scratchpad.md" ;;
+    draft)      echo "memo-draft.md" ;;
+    state)      echo "state.json" ;;
+    *)          echo "" ;;
+  esac
+}
 
 preserve_artifacts() {
   local state_dir="$1"
@@ -76,7 +79,8 @@ preserve_artifacts() {
   IFS=',' read -ra NAMES <<< "$artifact_names"
   for name in "${NAMES[@]}"; do
     name=$(echo "$name" | xargs)  # trim whitespace
-    local filename="${ARTIFACT_MAP[$name]}"
+    local filename
+    filename=$(artifact_filename "$name")
     if [ -z "$filename" ]; then
       continue
     fi
