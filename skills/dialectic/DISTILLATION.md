@@ -67,7 +67,7 @@ Cannot conclude without answering:
 
 | Decision | When | Required Output |
 |----------|------|-----------------|
-| CONCLUDE | All 5 probes pass + compression gate complete | Final memo + `[ANALYSIS_COMPLETE]` |
+| CONCLUDE | All 5 probes pass + compression gate complete | Decision in state.json + `[ANALYSIS_COMPLETE]` |
 | CONTINUE | Any probe fails or gate incomplete | Which probe failed + specific fix |
 
 **CONCLUDE only when you can state:**
@@ -119,11 +119,11 @@ Target format defined in `SYNTHESIS.md`. That file is the spec — headline, sit
 
 Cut every unnecessary word. Compress until removing one more word breaks structure. That's your length.
 
-Write draft to `.claude/dialectic/memo-draft.md`. Write final to `.claude/dialectic/memo-final.md`.
+Write draft to `.claude/dialectic/memo-draft.md`. The stop hook promotes the final draft to `memo-final.md` on conclude.
 
 ## CRITICAL: One Pass Per Response
 
-Each distillation pass is a separate response. After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding**. Do not begin the next pass. Do not promote to final without stopping first. The stop hook enforces the minimum pass requirement — it will re-feed you for the next pass.
+Each distillation pass is a separate response. After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding**. Do not begin the next pass. Do not write to memo-final.md — the stop hook promotes the draft on conclude. The stop hook enforces the minimum pass requirement — it will re-feed you for the next pass.
 
 If this is pass 1: extract spine, draft memo, run probes, write decision, stop.
 If this is pass 2+: revise based on previous probe findings, re-run probes in adversarial mode, write decision, stop.
@@ -184,6 +184,25 @@ spine:
 
 ---
 
+## Promotion Formatting
+
+When promoting `memo-draft.md` to final, rename section headers for a professional reader. The protocol names are useful during distillation (probes reference them) but read as framework jargon in a deliverable. Apply this mapping:
+
+| Draft Header | Final Header |
+|---|---|
+| `## Headline Insight` | Remove header entirely — make the text **bold** as an opening statement |
+| `## Situation` | `## Context` |
+| `## The Leap` | `## Core Thesis` |
+| `## Brief Refutatio` | `## The Counter-Argument` |
+| `## The Bet` | `## Position` |
+| `## First Move` | `## Recommended Actions` |
+| `## Disconfirmation Triggers` | `## What Would Change This View` |
+| `## Verdict` | `## Decision` |
+
+If the memo has a title line (e.g., `# NuServ Series B: Investment Committee Memo`), keep it. The Headline Insight text becomes the opening bold statement immediately after the title, with no section header.
+
+Do not change any content — only headers. The probes already validated the substance; this is a formatting pass only.
+
 ## CRITICAL: Stop After Each Distillation Pass
 
-After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding immediately**. Do not begin the next pass. Do not promote a draft to final without stopping first. Do not set `loop: "complete"` yourself. Do not remove evidence from state. The stop hook owns all transitions — it reads `state.json`, enforces the minimum pass requirement, and re-feeds you for the next pass or finalizes the session.
+After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding immediately**. Do not begin the next pass. Do not write to memo-final.md — the stop hook promotes the draft on conclude. Do not set `loop: "complete"` yourself. Do not remove evidence from state. The stop hook owns all transitions — it reads `state.json`, enforces the minimum pass requirement, and re-feeds you for the next pass or finalizes the session.

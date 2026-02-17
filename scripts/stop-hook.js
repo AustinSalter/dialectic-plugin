@@ -252,6 +252,13 @@ if (loop === "reasoning") {
     log(`  Distillation iterations: ${distIter}`);
     log(`  Final — R: ${R} | E: ${E} | C: ${C}`);
 
+    // Promote memo-draft to memo-final (hook owns this transition)
+    const draftPath = path.join(STATE_DIR, "memo-draft.md");
+    const finalPath = path.join(STATE_DIR, "memo-final.md");
+    if (fs.existsSync(draftPath) && !fs.existsSync(finalPath)) {
+      fs.copyFileSync(draftPath, finalPath);
+    }
+
     // Preserve artifacts before cleanup
     const outputDir = state.output_dir || ".dialectic-output/";
     const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history"];
@@ -277,7 +284,7 @@ if (loop === "reasoning") {
     writeState(state);
 
     blockStop(
-      `Distillation loop hit max iterations. Write the final memo to .claude/dialectic/memo-final.md as-is and emit [ANALYSIS_COMPLETE]. Read state from .claude/dialectic/state.json.`
+      `Distillation loop hit max iterations. Set decision to "conclude" in state.json and emit [ANALYSIS_COMPLETE]. The stop hook will promote memo-draft to memo-final. Read state from .claude/dialectic/state.json.`
     );
   }
 

@@ -247,6 +247,11 @@ elif [ "$LOOP" = "distillation" ]; then
     echo "  Distillation iterations: $DIST_ITER"
     echo "  Final — R: $R | E: $E | C: $C"
 
+    # Promote memo-draft to memo-final (hook owns this transition)
+    if [ -f "$STATE_DIR/memo-draft.md" ] && [ ! -f "$STATE_DIR/memo-final.md" ]; then
+      cp "$STATE_DIR/memo-draft.md" "$STATE_DIR/memo-final.md"
+    fi
+
     # Preserve artifacts before cleanup
     OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
     KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history"]) | join(",")' "$STATE_FILE" 2>/dev/null)
@@ -271,7 +276,7 @@ elif [ "$LOOP" = "distillation" ]; then
     jq '.decision = "conclude"' "$STATE_FILE" > "$STATE_FILE.tmp"
     mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-    echo "Distillation loop hit max iterations. Write the final memo to .claude/dialectic/memo-final.md as-is and emit [ANALYSIS_COMPLETE]. Read state from .claude/dialectic/state.json." >&2
+    echo "Distillation loop hit max iterations. Set decision to \"conclude\" in state.json and emit [ANALYSIS_COMPLETE]. The stop hook will promote memo-draft to memo-final. Read state from .claude/dialectic/state.json." >&2
     exit 2
   fi
 
