@@ -11,6 +11,7 @@ Clean up and exit the dialectic reasoning loop.
 1. Check if `.claude/dialectic/` directory exists
 2. If it exists:
    - Read `.claude/dialectic/state.json` to report current iteration and confidence
+   - If `loop` is `"awaiting_distillation"`, note that reasoning is complete and distillation hasn't been run yet — the user can still run `/dialectic:dialectic-distill` instead of cancelling
    - Preserve artifacts to the configured output directory (`output_dir` from state, default `.dialectic-output/`) using the configured `keep_artifacts` list (default: `memo,spine,history`). Copy each artifact file that exists, create a `manifest.json` with session metadata, and place everything in `{output_dir}/{session_id}/`
    - Report where artifacts were saved (if any files existed to preserve)
    - Remove the entire `.claude/dialectic/` directory

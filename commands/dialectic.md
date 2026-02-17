@@ -1,6 +1,6 @@
 ---
 description: Multi-pass dialectic reasoning with expansion, compression, and critique cycles
-argument-hint: <thesis or question> [--min-iterations=N] [--max-iterations=N] [--output=<dir>] [--keep=<list>]
+argument-hint: <thesis or question> [--min-iterations=N] [--max-iterations=N]
 ---
 
 # Dialectic Reasoning
@@ -18,18 +18,11 @@ Check if `.claude/dialectic/state.json` exists:
 Parse `$ARGUMENTS` for optional flags before the thesis text:
 - `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 2)
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
-- `--output=<dir>` — Directory for preserved artifacts (default: `.dialectic-output/`)
-- `--keep=<list>` — Comma-separated artifact names to preserve on completion (default: `memo,spine,history`)
-
-Valid `--keep` values: `memo` (memo-final.md), `spine` (spine.yaml), `history` (thesis-history.md), `prompt` (prompt.md), `scratchpad` (scratchpad.md), `draft` (memo-draft.md), `state` (state.json), `all` (everything), `none` (skip preservation).
-
-Artifacts are saved to `.dialectic-output/` by default. Add this to `.gitignore` if you don't want analysis results in version control.
 
 Extract the thesis/question text (everything that isn't a flag). Examples:
 - `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5
 - `/dialectic:dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"` → min=4, max=5
 - `/dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"` → min=3, max=7
-- `/dialectic:dialectic --keep=all --output=test-out/ "Where should VCs deploy capital in AI?"` → preserves all artifacts to `test-out/`
 
 ### Initial State (create if not exists)
 
@@ -84,7 +77,7 @@ Write decision to state.json `decision` field (lowercase: "continue", "conclude"
 
 ## Step 5: Update Thesis History
 
-**Always write thesis history before checking termination.** The distillation loop depends on a complete thesis-history.md.
+**Always write thesis history before checking termination.** Complete thesis history is required before concluding.
 
 After each iteration, append to `.claude/dialectic/thesis-history.md`:
 ```
@@ -103,16 +96,14 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 
 **Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
 
-After writing the thesis history entry and updating state.json, **stop responding**. Do not write anything else. Do not begin distillation, synthesis, or any other phase. The stop hook handles all transitions — it will read state.json and re-feed you with the correct next instruction.
+After writing the thesis history entry and updating state.json, **stop responding**. Do not write anything else. The stop hook handles all transitions.
 
 This applies to ALL decisions:
-- **CONCLUDE**: Stop. The hook transitions to distillation.
+- **CONCLUDE**: Stop. The reasoning phase is complete.
 - **CONTINUE**: Stop. The hook increments the iteration and re-feeds.
 - **ELEVATE**: Stop. The hook re-feeds with the elevation prompt.
 
-**Do not write transition headers, do not set `loop: "distillation"` yourself, do not begin the next phase.** The stop hook owns transitions.
-
-There is no Step 7 in this file. The stop hook introduces the next phase. If you are looking for what comes after the reasoning loop, the answer is: stop, and the hook will tell you.
+**Do not write transition headers, do not begin any next phase.** The stop hook owns transitions.
 
 ## Output Format
 

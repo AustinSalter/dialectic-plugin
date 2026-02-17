@@ -18,9 +18,27 @@ Iterative reasoning architecture that separates divergent exploration from conve
                     ┌──────────────────────────┼──────────────────────────┐
                     │                          │                          │
                     ▼                          ▼                          ▼
-              [CONTINUE]                 [CONCLUDE]                  [PIVOT]
-              loop back                  to synthesis              revise thesis
+              [CONTINUE]                 [CONCLUDE]                  [ELEVATE]
+              loop back               reasoning done              revise thesis
+
+                                    ▼ user runs /dialectic-distill
+
+                              ┌─────────────┐
+                              │ DISTILLATION │
+                              │ (compress)   │
+                              └──────┬───────┘
+                                     │
+                              iterates until
+                              memo finalized
 ```
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/dialectic:dialectic` | Run the reasoning loop (expansion → compression → critique) |
+| `/dialectic:dialectic-distill` | Distill reasoning artifacts into conviction memo |
+| `/dialectic:cancel-dialectic` | Cancel active session and preserve artifacts |
 
 ## Pass Selection
 

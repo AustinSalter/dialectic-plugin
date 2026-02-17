@@ -128,18 +128,18 @@ if [ "$LOOP" = "reasoning" ]; then
       mv "$STATE_FILE.tmp" "$STATE_FILE"
       # Fall through to the continue block below
     else
-      # TRANSITION TO DISTILLATION LOOP
+      # REASONING COMPLETE — exit cleanly, user invokes distillation separately
+      jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
       echo ""
       echo "================================================"
       echo "  Reasoning loop complete!"
       echo "  R: $R | E: $E | C: $C | Iterations: $ITERATION"
-      echo "  Transitioning to distillation loop..."
+      echo ""
+      echo "  Run /dialectic:dialectic-distill to produce"
+      echo "  the conviction memo."
       echo "================================================"
-      jq '.loop = "distillation" | .distillation_iteration = 1 | .distillation_max = 4 | .decision = null | .distillation_phase = "spine_extraction"' "$STATE_FILE" > "$STATE_FILE.tmp"
-      mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-      echo "Reasoning loop complete. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. Extract the reasoning spine from the scratchpad, then draft the conviction memo. Read state from .claude/dialectic/state.json." >&2
-      exit 2
+      exit 0
     fi
   fi
 
@@ -174,26 +174,31 @@ if [ "$LOOP" = "reasoning" ]; then
     fi
   fi
 
-  # Check iteration limit — force transition to distillation
+  # Check iteration limit — reasoning complete, user invokes distillation separately
   if [ "$ITERATION" -ge "$MAX_ITERATIONS" ]; then
-    echo ""
-    echo "================================================"
-    echo "  Max iterations reached ($ITERATION/$MAX_ITERATIONS)"
-    echo "  Forcing transition to distillation loop..."
-    echo "================================================"
-    jq '.loop = "distillation" | .distillation_iteration = 1 | .distillation_max = 4 | .decision = null | .distillation_phase = "spine_extraction"' "$STATE_FILE" > "$STATE_FILE.tmp"
+    jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
     mv "$STATE_FILE.tmp" "$STATE_FILE"
 
     ESCAPE_NOTE=""
     if [ "$(echo "$E < 0.5" | bc -l 2>/dev/null)" = "1" ]; then
-      ESCAPE_NOTE=" Evidence saturation is low (E=$E) — the analysis was cut short. Reference skills/dialectic/ESCAPE-HATCH.md for honest uncertainty acknowledgment in the memo."
+      ESCAPE_NOTE=" E=$E (low evidence saturation)."
     fi
     if [ "$(echo "$C < 0.5" | bc -l 2>/dev/null)" = "1" ]; then
-      ESCAPE_NOTE="$ESCAPE_NOTE Domain determinacy is low (C=$C) — this question resists certainty. The memo should reflect this honestly, not paper over it."
+      ESCAPE_NOTE="$ESCAPE_NOTE C=$C (low domain determinacy)."
     fi
 
-    echo "Reasoning loop hit max iterations. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions.${ESCAPE_NOTE} Read state from .claude/dialectic/state.json." >&2
-    exit 2
+    echo ""
+    echo "================================================"
+    echo "  Max iterations reached ($ITERATION/$MAX_ITERATIONS)"
+    echo "  R: $R | E: $E | C: $C"
+    if [ -n "$ESCAPE_NOTE" ]; then
+      echo "  Note:$ESCAPE_NOTE"
+    fi
+    echo ""
+    echo "  Run /dialectic:dialectic-distill to produce"
+    echo "  the conviction memo."
+    echo "================================================"
+    exit 0
   fi
 
   # Continue reasoning loop — increment iteration and re-feed

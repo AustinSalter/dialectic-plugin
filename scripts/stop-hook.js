@@ -131,23 +131,18 @@ if (loop === "reasoning") {
       writeState(state);
       // Fall through to continue block
     } else {
-      // TRANSITION TO DISTILLATION LOOP
+      // REASONING COMPLETE — exit cleanly, user invokes distillation separately
+      state.loop = "awaiting_distillation";
+      writeState(state);
       log("");
       log("================================================");
       log("  Reasoning loop complete!");
       log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
-      log("  Transitioning to distillation loop...");
+      log("");
+      log("  Run /dialectic:dialectic-distill to produce");
+      log("  the conviction memo.");
       log("================================================");
-      state.loop = "distillation";
-      state.distillation_iteration = 1;
-      state.distillation_max = 4;
-      state.decision = null;
-      state.distillation_phase = "spine_extraction";
-      writeState(state);
-
-      blockStop(
-        `Reasoning loop complete. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. Extract the reasoning spine from the scratchpad, then draft the conviction memo. Read state from .claude/dialectic/state.json.`
-      );
+      process.exit(0);
     }
   }
 
@@ -184,23 +179,25 @@ if (loop === "reasoning") {
     }
   }
 
-  // Check iteration limit — force transition to distillation
+  // Check iteration limit — reasoning complete, user invokes distillation separately
   if (iteration >= maxIterations) {
+    state.loop = "awaiting_distillation";
+    writeState(state);
+
+    let escapeNote = "";
+    if (E < 0.5) escapeNote += ` E=${E} (low evidence saturation).`;
+    if (C < 0.5) escapeNote += ` C=${C} (low domain determinacy).`;
+
     log("");
     log("================================================");
     log(`  Max iterations reached (${iteration}/${maxIterations})`);
-    log("  Forcing transition to distillation loop...");
+    log(`  R: ${R} | E: ${E} | C: ${C}`);
+    if (escapeNote) log(`  Note:${escapeNote}`);
+    log("");
+    log("  Run /dialectic:dialectic-distill to produce");
+    log("  the conviction memo.");
     log("================================================");
-    state.loop = "distillation";
-    state.distillation_iteration = 1;
-    state.distillation_max = 4;
-    state.decision = null;
-    state.distillation_phase = "spine_extraction";
-    writeState(state);
-
-    blockStop(
-      `Reasoning loop hit max iterations. Begin distillation loop. Read skills/dialectic/DISTILLATION.md for instructions. ${E < 0.5 ? "Evidence saturation is low (E=" + E + ") — the analysis was cut short. Reference skills/dialectic/ESCAPE-HATCH.md for honest uncertainty acknowledgment in the memo." : ""}${C < 0.5 ? " Domain determinacy is low (C=" + C + ") — this question resists certainty. The memo should reflect this honestly, not paper over it." : ""} Read state from .claude/dialectic/state.json.`
-    );
+    process.exit(0);
   }
 
   // Continue reasoning loop — increment iteration and re-feed
