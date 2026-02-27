@@ -30,7 +30,7 @@ Then add it as a local marketplace from within Claude Code:
 
 ## Usage
 
-### Start dialectic reasoning
+### 1. Reason
 
 ```
 /dialectic:dialectic <thesis or question>
@@ -48,15 +48,35 @@ Examples:
 /dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"
 ```
 
-The dialectic loop will:
+The reasoning loop will:
 
 1. **EXPANSION** — Explore the question broadly, gathering evidence and counter-arguments
 2. **COMPRESSION** — Synthesize findings, update confidence, identify next priority
 3. **CRITIQUE** — Apply adversarial probes, decide whether to continue, conclude, or elevate
 4. **Loop** — Automatically continue until the thesis is robust or max iterations reached
-5. **SYNTHESIS** — Produce a conviction memo with actionable recommendations
 
-A stop hook manages the loop automatically — blocking exit (exit code 2) and re-feeding the prompt via stderr until the critique pass decides to conclude or the iteration limit is reached. A single Node.js entry point (`stop-hook.js`) delegates to the bash script on macOS/Linux and handles the logic directly on Windows.
+A stop hook manages the loop automatically — blocking exit (exit code 2) and re-feeding the prompt via stderr until the critique pass decides to conclude or the iteration limit is reached. When reasoning concludes, the state transitions to `awaiting_distillation`. A single Node.js entry point (`stop-hook.js`) delegates to the bash script on macOS/Linux and handles the logic directly on Windows.
+
+### 2. Distill into conviction memo
+
+```
+/dialectic:dialectic-distill [--output=<dir>] [--keep=<list>] [--min-passes=N] [--max-passes=N]
+```
+
+Run after reasoning completes. Compresses the reasoning artifacts into an actionable conviction memo through iterative distillation:
+
+1. **SPINE EXTRACTION** — Walk the scratchpad chronologically, identify surviving claims and evidence, build a structural skeleton (`spine.yaml`)
+2. **MEMO DRAFT** — Write a conviction memo against the synthesis spec
+3. **PROBES** — Run 5 fidelity checks: Trace, Tension, Sufficiency, Conviction-Ink, Threads
+4. **Loop** — Continue refining (pass 2+ runs probes in adversarial mode) until all probes pass or max passes reached
+5. **PROMOTE** — Final draft is promoted to `memo-final.md`
+
+Optional flags:
+
+- `--output=<dir>` — Directory for preserved artifacts (default: `.dialectic-output/`)
+- `--keep=<list>` — Comma-separated artifact names to preserve (default: `memo,spine,history`)
+- `--min-passes=N` — Minimum distillation passes (default: 2)
+- `--max-passes=N` — Maximum distillation passes (default: 4)
 
 ### Cancel the loop
 
@@ -69,6 +89,8 @@ Stops the reasoning loop, reports where analysis stopped, and cleans up state fi
 ## Architecture
 
 ```
+Reasoning loop (/dialectic:dialectic)
+
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  EXPANSION  │────▶│ COMPRESSION │────▶│   CRITIQUE  │
 │  (diverge)  │     │  (converge) │     │  (decide)   │
@@ -78,7 +100,22 @@ Stops the reasoning loop, reports where analysis stopped, and cleans up state fi
                     │                          │                          │
                     ▼                          ▼                          ▼
               [CONTINUE]                 [CONCLUDE]                  [ELEVATE]
-              loop back                  to synthesis              reframe thesis
+              loop back            awaiting_distillation           reframe thesis
+
+
+Distillation loop (/dialectic:dialectic-distill)
+
+┌──────────────┐     ┌────────────┐     ┌──────────┐
+│    SPINE     │────▶│    MEMO    │────▶│  PROBES  │
+│  EXTRACTION  │     │   DRAFT    │     │  (5 checks) │
+└──────────────┘     └────────────┘     └─────┬────┘
+                                              │
+                              ┌───────────────┴───────────────┐
+                              │                               │
+                              ▼                               ▼
+                        [CONTINUE]                      [CONCLUDE]
+                     revise + re-probe              (pass ≥ 2) promote
+                     (adversarial mode)             draft → memo-final
 ```
 
 ### Termination conditions
@@ -124,14 +161,25 @@ Automatic detection of market dynamics:
 
 ### Conviction Synthesis
 
-Final output is a conviction memo with:
+Distillation extracts a `spine.yaml` (structural skeleton of surviving claims and evidence) from the reasoning scratchpad, then drafts a conviction memo validated by 5 probes:
 
-- Headline insight
-- The Leap (single incisive shift)
-- Strongest counter-argument and why we commit anyway
-- The Bet (what we're betting on and why)
-- Concrete next actions
-- Disconfirmation triggers (what would flip the recommendation)
+| Probe | Checks |
+|-------|--------|
+| **Trace** | Every load-bearing claim in the memo? Every memo claim in the spine? |
+| **Tension** | Does each counter-argument *strengthen* the thesis, not just get dismissed? |
+| **Sufficiency** | Could the reader act on this without the scratchpad? |
+| **Conviction-Ink** | Does every sentence advance the argument, provide evidence, or acknowledge risk? |
+| **Threads** | ≤3 independent argument threads held simultaneously? |
+
+Pass 2+ runs probes in adversarial mode. The final memo sections are:
+
+- **Context** — Decision stakes and timing
+- **Core Thesis** — The altitude shift the analysis discovered
+- **The Counter-Argument** — Strongest objection and why we commit anyway
+- **Position** — The structural bet and its mechanism
+- **Recommended Actions** — What to do Monday, check at 30 days, gate conditions
+- **What Would Change This View** — Observable disconfirmation triggers
+- **Decision** — Verdict table (recommendation, conviction, window, constraint, trigger)
 
 ## Plugin Structure
 
@@ -141,7 +189,8 @@ dialectic-plugin/
 │   ├── plugin.json         # Plugin metadata
 │   └── marketplace.json    # Marketplace catalog entry
 ├── commands/
-│   ├── dialectic.md        # Main reasoning command
+│   ├── dialectic.md        # Reasoning command
+│   ├── dialectic-distill.md # Distillation command
 │   └── cancel-dialectic.md # Cancel command
 ├── skills/
 │   └── dialectic/
@@ -149,7 +198,8 @@ dialectic-plugin/
 │       ├── EXPANSION.md    # Expansion pass instructions
 │       ├── COMPRESSION.md  # Compression pass instructions
 │       ├── CRITIQUE.md     # Critique pass instructions
-│       ├── SYNTHESIS.md    # Final synthesis instructions
+│       ├── DISTILLATION.md # Distillation protocol
+│       ├── SYNTHESIS.md    # Memo format specification
 │       ├── ESCAPE-HATCH.md # Escape hatch for blocked analysis
 │       ├── MARKERS.md      # Semantic marker definitions
 │       └── PATTERNS.md     # Strategic patterns library
