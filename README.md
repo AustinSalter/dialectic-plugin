@@ -1,213 +1,179 @@
 # Dialectic Plugin for Claude Code
 
-Multi-pass dialectic reasoning with automatic looping. Analyzes complex strategic questions through iterative expansion, compression, and critique cycles.
+Multi-pass reasoning for strategic questions. Iterates through expansion, compression, and critique until a thesis is robust — or proved wrong.
 
-## Installation
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://claude.ai)
+
+## Quick Start
 
 ### From the marketplace (recommended)
-
-Add the marketplace and install the plugin from within Claude Code:
 
 ```
 /plugin marketplace add AustinSalter/dialectic-plugin
 /plugin install dialectic@AustinSalter-dialectic-plugin
 ```
 
-Or browse available plugins interactively by running `/plugin` and navigating to the **Discover** tab.
+Or browse available plugins: `/plugin` → **Discover** tab.
 
 ### From a local clone
 
-```bash
+```
 git clone https://github.com/AustinSalter/dialectic-plugin.git
-```
-
-Then add it as a local marketplace from within Claude Code:
-
-```
 /plugin marketplace add ./dialectic-plugin
 /plugin install dialectic@dialectic-plugin
 ```
 
+## Features
+
+- **Iterative dialectic reasoning** — Expansion, compression, and critique passes that argue against themselves before concluding
+- **3D confidence tracking** — Robustness, evidence saturation, and domain determinacy replace single-scalar guesswork
+- **Frame selection** — Calibrates altitude before searching. "Better docs" becomes "developer adoption → switching costs → infrastructure moat"
+- **Two-loop architecture** — Reasoning explores (messy, exhaustive). Distillation compresses (every sentence earns its place). A stop hook enforces the boundary.
+- **Conviction memo output** — Structured for action: headline insight, the bet, falsification triggers, first Monday move
+- **Adversarial probes** — Five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) gate the final memo before it ships
+
 ## Usage
 
-### 1. Reason
+### Reason
 
 ```
-/dialectic:dialectic <thesis or question>
+/dialectic <thesis or question>
 ```
 
-Optional flags:
-
-- `--min-iterations=N` — Minimum iterations before concluding (default: 2)
-- `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
-
-Examples:
+Optional flags: `--min-iterations=N` (default 3), `--max-iterations=N` (default 5).
 
 ```
-/dialectic:dialectic Should Yahoo acquire Google for $3B in 2002?
-/dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"
+/dialectic Should Yahoo acquire Google for $3B in 2002?
+/dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"
 ```
 
-The reasoning loop will:
+### Distill
 
-1. **EXPANSION** — Explore the question broadly, gathering evidence and counter-arguments
-2. **COMPRESSION** — Synthesize findings, update confidence, identify next priority
-3. **CRITIQUE** — Apply adversarial probes, decide whether to continue, conclude, or elevate
-4. **Loop** — Automatically continue until the thesis is robust or max iterations reached
-
-A stop hook manages the loop automatically — blocking exit (exit code 2) and re-feeding the prompt via stderr until the critique pass decides to conclude or the iteration limit is reached. When reasoning concludes, the state transitions to `awaiting_distillation`. A single Node.js entry point (`stop-hook.js`) delegates to the bash script on macOS/Linux and handles the logic directly on Windows.
-
-### 2. Distill into conviction memo
+After reasoning concludes, compress into a conviction memo:
 
 ```
-/dialectic:dialectic-distill [--output=<dir>] [--keep=<list>] [--min-passes=N] [--max-passes=N]
+/dialectic-distill
 ```
 
-Run after reasoning completes. Compresses the reasoning artifacts into an actionable conviction memo through iterative distillation:
+Optional flags: `--output=<dir>`, `--keep=<list>`, `--min-passes=N`, `--max-passes=N`.
 
-1. **SPINE EXTRACTION** — Walk the scratchpad chronologically, identify surviving claims and evidence, build a structural skeleton (`spine.yaml`)
-2. **MEMO DRAFT** — Write a conviction memo against the synthesis spec
-3. **PROBES** — Run 5 fidelity checks: Trace, Tension, Sufficiency, Conviction-Ink, Threads
-4. **Loop** — Continue refining (pass 2+ runs probes in adversarial mode) until all probes pass or max passes reached
-5. **PROMOTE** — Final draft is promoted to `memo-final.md`
-
-Optional flags:
-
-- `--output=<dir>` — Directory for preserved artifacts (default: `.dialectic-output/`)
-- `--keep=<list>` — Comma-separated artifact names to preserve (default: `memo,spine,history`)
-- `--min-passes=N` — Minimum distillation passes (default: 2)
-- `--max-passes=N` — Maximum distillation passes (default: 4)
-
-### Cancel the loop
+### Cancel
 
 ```
-/dialectic:cancel-dialectic
+/cancel-dialectic
 ```
 
-Stops the reasoning loop, reports where analysis stopped, and cleans up state files.
+## How It Works
 
-## Architecture
+Single-pass AI treats strategy as text generation: query in, answer out. But strategic thinking is *siege work* — recursive, high-stakes, long-feedback-loop. The interesting questions aren't answered by faster generation. They're answered by structured self-opposition.
+
+This plugin engineers the conditions for what the Greeks called *aporia*: productive confusion that precedes genuine insight. It forces the model to argue against itself before concluding, because a thesis that hasn't survived adversarial pressure isn't a thesis — it's a first draft.
 
 ```
-Reasoning loop (/dialectic:dialectic)
+ LOOP 1: REASONING
+ ═══════════════════════════════════════════════════════════════
 
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  EXPANSION  │────▶│ COMPRESSION │────▶│   CRITIQUE  │
-│  (diverge)  │     │  (converge) │     │  (decide)   │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-                                               │
-                    ┌──────────────────────────┼──────────────────────────┐
-                    │                          │                          │
-                    ▼                          ▼                          ▼
-              [CONTINUE]                 [CONCLUDE]                  [ELEVATE]
-              loop back            awaiting_distillation           reframe thesis
-
-
-Distillation loop (/dialectic:dialectic-distill)
-
-┌──────────────┐     ┌────────────┐     ┌──────────┐
-│    SPINE     │────▶│    MEMO    │────▶│  PROBES  │
-│  EXTRACTION  │     │   DRAFT    │     │  (5 checks) │
-└──────────────┘     └────────────┘     └─────┬────┘
-                                              │
-                              ┌───────────────┴───────────────┐
-                              │                               │
-                              ▼                               ▼
-                        [CONTINUE]                      [CONCLUDE]
-                     revise + re-probe              (pass ≥ 2) promote
-                     (adversarial mode)             draft → memo-final
+ ┌─────────────┐      ┌─────────────┐      ┌──────────────┐
+ │  EXPANSION  │─────▶│ COMPRESSION │─────▶│   CRITIQUE   │
+ │             │      │             │      │              │
+ │  Frame the  │      │  Find the   │      │  Break it    │
+ │  question.  │      │  joint.     │      │  or commit.  │
+ │  Search.    │      │             │      │              │
+ └─────────────┘      └─────────────┘      └──────┬───────┘
+       ▲                                          │
+       │               ┌──────────────────────────┼────────────┐
+       │               │                          │            │
+       │               ▼                          ▼            ▼
+       └────── [CONTINUE]                   [ELEVATE]    [CONCLUDE]
+               loop back                  reframe thesis       │
+                                                               │
+                                                        ── stop hook ──
+                                                               │
+ LOOP 2: DISTILLATION                                          │
+ ═══════════════════════════════════════════════════════════════
+                                                               │
+ ┌─────────────┐      ┌─────────────┐      ┌──────────────┐   │
+ │    SPINE    │─────▶│    DRAFT    │─────▶│    PROBES    │◀──┘
+ │             │      │             │      │              │
+ │  Extract    │      │  Write to   │      │  Trace       │
+ │  load-      │      │  SYNTHESIS  │      │  Tension     │
+ │  bearing    │      │  spec       │      │  Sufficiency │
+ │  claims     │      │             │      │  Ink         │
+ └─────────────┘      └─────────────┘      │  Threads     │
+       ▲                                   └──────┬───────┘
+       │                                          │
+       │               ┌──────────────────────────┤
+       │               │                          │
+       │               ▼                          ▼
+       └────── [CONTINUE]                   [CONCLUDE]
+               revise draft               promote to final
 ```
 
-### Termination conditions
+Each phase operationalizes a move from the dialectical tradition — Socratic cross-examination, Hegelian sublation, Aristotelian stasis classification — without requiring the vocabulary.
 
-Analysis terminates when any of:
+**Expansion** selects a frame (what stasis level? what is this thesis trying to protect?) then searches within it. Not "think broadly" — "think at the right altitude."
 
-1. Critique decides the thesis is robust (CONCLUDE) and the iteration floor is met
-2. Confidence delta < 0.05 for 2 consecutive cycles (saturation)
-3. Composite confidence >= 0.75 with < 2 unresolved questions
-4. Max iterations reached (triggers escape hatch if confidence is low)
+**Compression** distills to three things: the thesis, the strongest opposition, and the *joint* — the point where both feel true. The joint carries across cycles. Everything else dies.
 
-## Key Features
+**Critique** tries to break the thesis. A preservation gate prevents abstraction drift — you can't elevate without first articulating what the thesis got right.
 
-### 3D Confidence Model
+**Distillation** extracts the spine (load-bearing claims + causal chain), drafts against the SYNTHESIS.md spec, and runs five probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads). Minimum 2 passes; pass 2+ is adversarial.
 
-Single scalar confidence conflates reasoning quality, evidence quality, and conclusion certainty. This plugin uses three independent dimensions:
+The two loops are structurally independent. The reasoning loop explores — messy, exhaustive, 5,000+ words of scratchpad. The distillation loop compresses — every sentence must earn its place. A model that reasons and writes simultaneously produces research reports too long to read and too shallow to act on. The stop hook enforces the boundary: finish thinking, then start writing.
 
-- **R (Reasoning)**: Is the logic sound? (0.0–1.0)
-- **E (Evidence)**: Is evidence complete? (0.0–1.0)
-- **C (Conclusion)**: How certain given R and E? (0.0–1.0)
+### Termination
 
-Composite score: `(R + E + C) / 3`. Confidence is non-monotonic — it can go down between iterations as new counter-evidence surfaces.
+Reasoning ends when critique CONCLUDEs and the iteration floor is met, confidence saturates (delta < 0.05 for two cycles), or max iterations hit. Distillation ends when all five probes pass and the compression gate is satisfied.
 
-### Semantic Markers
+### 3D Confidence
 
-Structured reasoning output with extractable markers:
+Single-scalar confidence creates two problems. First, *bad infinity*: the model can always find another objection, so confidence oscillates without converging. A single number can't distinguish "my reasoning broke" from "I need more evidence" from "this domain is just hard." Second, *unreachable thresholds*: geopolitical questions will never hit 0.75 confidence and shouldn't have to.
 
-- `[INSIGHT]` — Non-obvious conclusions
-- `[EVIDENCE]` — Specific data points
-- `[COUNTER]` — Arguments against the thesis
-- `[TENSION]` — Conflicting evidence
-- `[THREAD]` — Areas worth exploring
+Three dimensions solve both:
 
-### Market Structure Detection
+- **R (Robustness)** — does the thesis survive adversarial pressure? R can rise even as the thesis changes, because absorbing an objection makes the argument stronger.
+- **E (Evidence saturation)** — how much relevant evidence has been integrated? Per-iteration cap of 0.15 prevents inflation. Evidence gate requires E ≥ 0.4 before reframing is allowed.
+- **C (Domain determinacy)** — how knowable is this question *in principle*? Physics: 0.7-0.9. Geopolitics: 0.2-0.4. C is the ceiling — it tells the system when to stop pushing, not when to keep trying.
 
-Automatic detection of market dynamics:
+A thesis at R=0.65, E=0.70, C=0.38 is ready to conclude. A single scalar would average to ~0.58 and keep iterating, chasing convergence the domain prevents. The three dimensions make the *source* of uncertainty legible, so each drop leads to a different next move.
 
-- Winner-Take-All (WTA)
-- Winner-Take-Most (WTM)
-- Disruption (Christensen Pattern)
-- Gradual Share Competition
-- Commodity Dynamics
+Confidence should be non-monotonic. A dip means a critique found a real problem; recovery means the thesis absorbed it. Monotonic ascent is rationalization.
 
-### Conviction Synthesis
+## Inspirations
 
-Distillation extracts a `spine.yaml` (structural skeleton of surviving claims and evidence) from the reasoning scratchpad, then drafts a conviction memo validated by 5 probes:
+The architecture draws from thinkers who treated reasoning as adversarial and iterative — not a toolkit of named concepts but structural moves that recur across 2,400 years of serious thought about how minds change.
 
-| Probe | Checks |
-|-------|--------|
-| **Trace** | Every load-bearing claim in the memo? Every memo claim in the spine? |
-| **Tension** | Does each counter-argument *strengthen* the thesis, not just get dismissed? |
-| **Sufficiency** | Could the reader act on this without the scratchpad? |
-| **Conviction-Ink** | Does every sentence advance the argument, provide evidence, or acknowledge risk? |
-| **Threads** | ≤3 independent argument threads held simultaneously? |
+**Socrates** gave us *elenchus* — cross-examination that creates the conditions for discovering your frame is wrong. **Aristotle** contributed *stasis theory* — not all disagreements are equal; are we arguing about facts, definitions, values, or procedures? The expansion pass classifies the question's stasis level before searching. **Hegel's** *Aufhebung* — negation that preserves what it negates — is the critique pass's preservation gate: you can't elevate without first articulating what the thesis got right. **Walter Benjamin** drew the distinction between information (explains itself on arrival) and narrative (lodges in the reader and unfolds). The reasoning loop produces information; the distillation loop transforms it into narrative. This is why the plugin has two loops, not one.
 
-Pass 2+ runs probes in adversarial mode. The final memo sections are:
+The conviction memo format descends from **Cicero** — propositio, narratio, refutatio, peroratio — because Roman juries had short attention spans and the advocate who wasted their time lost. The same constraint applies to anyone reading your analysis. **Orwell's** compression axioms ("omit needless words") become formal probes: does every sentence advance the argument, provide evidence, or acknowledge risk?
 
-- **Context** — Decision stakes and timing
-- **Core Thesis** — The altitude shift the analysis discovered
-- **The Counter-Argument** — Strongest objection and why we commit anyway
-- **Position** — The structural bet and its mechanism
-- **Recommended Actions** — What to do Monday, check at 30 days, gate conditions
-- **What Would Change This View** — Observable disconfirmation triggers
-- **Decision** — Verdict table (recommendation, conviction, window, constraint, trigger)
+[Read the full philosophical foundations →](PHILOSOPHICAL-FOUNDATIONS.md)
 
 ## Plugin Structure
 
 ```
 dialectic-plugin/
-├── .claude-plugin/
-│   ├── plugin.json         # Plugin metadata
-│   └── marketplace.json    # Marketplace catalog entry
+├── .claude-plugin/         # Plugin metadata
 ├── commands/
-│   ├── dialectic.md        # Reasoning command
+│   ├── dialectic.md        # Reasoning loop command
 │   ├── dialectic-distill.md # Distillation command
 │   └── cancel-dialectic.md # Cancel command
-├── skills/
-│   └── dialectic/
-│       ├── SKILL.md        # Skill overview
-│       ├── EXPANSION.md    # Expansion pass instructions
-│       ├── COMPRESSION.md  # Compression pass instructions
-│       ├── CRITIQUE.md     # Critique pass instructions
-│       ├── DISTILLATION.md # Distillation protocol
-│       ├── SYNTHESIS.md    # Memo format specification
-│       ├── ESCAPE-HATCH.md # Escape hatch for blocked analysis
-│       ├── MARKERS.md      # Semantic marker definitions
-│       └── PATTERNS.md     # Strategic patterns library
+├── skills/dialectic/
+│   ├── SKILL.md            # Skill overview
+│   ├── EXPANSION.md        # Frame selection + divergent search
+│   ├── COMPRESSION.md      # Distill to thesis, opposition, joint
+│   ├── CRITIQUE.md         # Adversarial probes + preservation gate
+│   ├── SYNTHESIS.md        # Conviction memo format spec
+│   ├── DISTILLATION.md     # Distillation loop protocol + probes
+│   ├── ESCAPE-HATCH.md     # Low-confidence forced exit
+│   ├── MARKERS.md          # Semantic marker definitions
+│   └── PATTERNS.md         # Strategic patterns library
 ├── hooks/
-│   └── hooks.json          # Stop hook configuration
+│   └── hooks.json          # Stop hook config
 ├── scripts/
-│   ├── stop-hook.js        # Loop controller entry point (delegates to bash on macOS/Linux)
-│   └── stop-hook.sh        # Loop controller (bash/jq, used on macOS/Linux)
+│   ├── stop-hook.sh        # Loop controller (macOS/Linux)
+│   └── stop-hook.js        # Loop controller (cross-platform)
 └── README.md
 ```
 
