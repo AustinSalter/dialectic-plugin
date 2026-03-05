@@ -79,11 +79,17 @@ Gather evidence *within the selected frame*.
 | `[THREAD]` | Worth deeper investigation |
 | `[INSIGHT]` | Pattern, connection, reframe |
 
-**Tool use (when available):**
-- Budget 3-5 calls per expansion
-- Prioritize high-signal sources
-- Synthesize after each result
-- Note what you couldn't investigate
+**Web research (use actively, not passively):**
+
+You have `WebSearch` and `WebFetch` available. Use them. Do not rely solely on training data for empirical claims.
+
+- Budget 3-5 `WebSearch` calls per expansion pass
+- Search for: recent data, counter-evidence, expert positions on the other side, market data, announcements
+- Use `WebFetch` to follow high-signal URLs from search results
+- Synthesize after each result before searching again
+- Mark search-sourced evidence with `[EVIDENCE:web]` vs training-data evidence with `[EVIDENCE:prior]`
+- Note what you searched for but couldn't find
+- If no web search is possible, state this explicitly so the user knows evidence is from training data only
 
 ## Do NOT
 

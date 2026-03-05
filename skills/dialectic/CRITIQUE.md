@@ -30,6 +30,18 @@ Run all five against the framed thesis:
 
 **For domain-specific probes:** See patterns/{domain}.md
 
+## Fact-Check with Web Search
+
+Use `WebSearch` to verify or challenge key claims from the expansion pass. Budget 2-3 searches per critique.
+
+**Search for:**
+- Disconfirming evidence for the strongest supporting claims
+- Recent developments that affect contingency/mechanism probes
+- Expert opinions that contradict the current thesis framing
+- Data that resolves identified `[TENSION]` markers
+
+Mark any web-sourced findings that change probe outcomes. If a probe result would differ with updated evidence, note the delta.
+
 ## Preservation Gate (Required)
 
 Cannot decide without answering:
