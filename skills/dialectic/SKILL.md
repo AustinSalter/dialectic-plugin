@@ -14,30 +14,39 @@ Iterative reasoning architecture that separates divergent exploration from conve
 │  EXPANSION  │────▶│ COMPRESSION │────▶│   CRITIQUE  │
 │  (diverge)  │     │  (converge) │     │  (decide)   │
 └─────────────┘     └─────────────┘     └──────┬──────┘
+      ▲                                        │
+      │              ┌─────────────────────────┼─────────────────────────┐
+      │              │                         │                         │
+      │              ▼                         ▼                         ▼
+      └────── [CONTINUE]                 [CONCLUDE]                 [ELEVATE]
+              loop back                        │                  revise thesis
                                                │
-                    ┌──────────────────────────┼──────────────────────────┐
-                    │                          │                          │
-                    ▼                          ▼                          ▼
-              [CONTINUE]                 [CONCLUDE]                  [ELEVATE]
-              loop back               reasoning done              revise thesis
-
-                                    ▼ user runs /dialectic-distill
-
-                              ┌─────────────┐
-                              │ DISTILLATION │
-                              │ (compress)   │
-                              └──────┬───────┘
-                                     │
-                              iterates until
-                              memo finalized
+                                        ┌──────┴──────┐
+                                        │  HOLDOUT    │ (if --holdout)
+                                        │  (validate) │
+                                        └──────┬──────┘
+                                               │
+                                        ── stop hook ──
+                                               │
+                                    ┌──────────┴──────────┐
+                                    │                     │
+                                    ▼                     ▼
+                             ┌─────────────┐       ┌─────────────┐
+                             │ DISTILLATION │       │    FORGE    │
+                             │ (compress)   │       │  (build)    │
+                             └──────┬───────┘       └──────┬──────┘
+                                    │                      │
+                             iterates until         iterates until
+                             memo finalized         spec finalized
 ```
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/dialectic:dialectic` | Run the reasoning loop (expansion → compression → critique) |
-| `/dialectic:dialectic-distill` | Distill reasoning artifacts into conviction memo |
+| `/dialectic:dialectic` | Run the reasoning loop (expansion → compression → critique). Use `--holdout` for post-loop validation. |
+| `/dialectic:dialectic-distill` | Distill reasoning artifacts into conviction memo (holdout-aware) |
+| `/dialectic:forge` | Synthesize reasoning into engineering build spec (holdout-aware) |
 | `/dialectic:cancel-dialectic` | Cancel active session and preserve artifacts |
 
 ## Pass Selection
@@ -76,6 +85,21 @@ Passes receive working memory as context. Standard format:
 **Critique**: See [CRITIQUE.md](CRITIQUE.md) — includes 6 questioning techniques, problem-type routing, 3D confidence
 **Synthesis**: See [SYNTHESIS.md](SYNTHESIS.md)
 **Escape Hatch**: See [ESCAPE-HATCH.md](ESCAPE-HATCH.md)
+
+## Post-Loop Synthesis
+
+**Holdout**: See [HOLDOUT.md](HOLDOUT.md) — partitioned adversarial audit (3 attack passes, verdict: VALIDATED/CHALLENGED/FRACTURED)
+**Forge**: See [FORGE.md](FORGE.md) — build spec synthesis with marker translation (evidence→constraints, counters→risks, tensions→decision points)
+
+### Workflow Examples
+
+```
+Fast conviction:      /dialectic "thesis" → /dialectic-distill
+Fast build:           /dialectic "thesis" → /forge
+Validated conviction: /dialectic --holdout "thesis" → /dialectic-distill
+Validated build:      /dialectic --holdout "thesis" → /forge
+Full package:         /dialectic --holdout "thesis" → /forge + /dialectic-distill
+```
 
 ## Semantic Markers
 

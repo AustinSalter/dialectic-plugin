@@ -40,11 +40,26 @@ Update state.json:
 - Set `decision: null`
 - Update `output_dir` and `keep_artifacts` if flags were provided
 
-## Step 3: Run Distillation
+## Step 3: Check for Holdout Report
+
+If `.claude/dialectic/holdout_report.md` exists, read and extract verdict:
+
+- **VALIDATED**: Proceed with standard distillation. After memo finalization, append footer: `--- ✓ Validated by partitioned holdout audit`
+- **CHALLENGED**: Inject holdout findings into distillation context before drafting:
+  - Buried evidence (SUSPICIOUS) → must be explicitly addressed in the memo
+  - Unengaged counter-arguments → replace or strengthen the refutatio section with these stronger counters
+  - Soft disconfirmation triggers → tighten with holdout's improved triggers or justify keeping them
+  - Use the holdout's adjusted confidence scores instead of the loop's original scores
+  - After memo finalization, append footer: `--- ⚠ Challenged by holdout — [N] findings incorporated`
+- **FRACTURED**: Warn user that the reasoning foundation is unstable. Suggest re-running `/dialectic:dialectic` with the holdout's counter-thesis. Allow proceeding if user insists — in that case, the memo should frame the tension explicitly and note the fracture.
+
+If no holdout report exists: proceed with standard distillation, no footer (backward compatible).
+
+## Step 4: Run Distillation
 
 Follow the full distillation protocol in `skills/dialectic/DISTILLATION.md`.
 
-On pass 1: Extract spine, draft memo, run probes, write decision to state.json, stop.
+On pass 1: Extract spine, draft memo (incorporating holdout findings if present), run probes, write decision to state.json, stop.
 On pass 2+: Revise based on previous probe findings, re-run probes in adversarial mode, write decision, stop.
 
 The memo target format is defined in `skills/dialectic/SYNTHESIS.md`.

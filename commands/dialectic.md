@@ -1,6 +1,6 @@
 ---
 description: Multi-pass dialectic reasoning with expansion, compression, and critique cycles
-argument-hint: <thesis or question> [--min-iterations=N] [--max-iterations=N]
+argument-hint: <thesis or question> [--min-iterations=N] [--max-iterations=N] [--holdout]
 ---
 
 # Dialectic Reasoning
@@ -18,11 +18,12 @@ Check if `.claude/dialectic/state.json` exists:
 Parse `$ARGUMENTS` for optional flags before the thesis text:
 - `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 2)
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
+- `--holdout` — Enable holdout validation after reasoning concludes
 
 Extract the thesis/question text (everything that isn't a flag). Examples:
-- `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5
-- `/dialectic:dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"` → min=4, max=5
-- `/dialectic:dialectic --min-iterations=3 --max-iterations=7 "Where should VCs deploy capital in AI?"` → min=3, max=7
+- `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5, holdout=false
+- `/dialectic:dialectic --holdout "Where should VCs deploy capital in AI?"` → min=2, max=5, holdout=true
+- `/dialectic:dialectic --min-iterations=3 --max-iterations=7 --holdout "thesis"` → min=3, max=7, holdout=true
 
 ### Initial State (create if not exists)
 
@@ -50,10 +51,19 @@ Create the directory `.claude/dialectic/` and write `state.json`:
     "challenging": []
   },
   "decision": null,
+  "holdout": false,
+  "holdout_state": {
+    "pass": 1,
+    "max_passes": 2,
+    "verdict": null,
+    "report_path": null
+  },
   "output_dir": "<parsed or default .dialectic-output/>",
   "keep_artifacts": ["memo", "spine", "history"]
 }
 ```
+
+Set `holdout: true` in state.json if `--holdout` flag is present.
 
 Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
 
@@ -117,3 +127,22 @@ This visibility IS the value. Do not summarize or hide your reasoning.
 ## Market Structure Patterns
 
 Reference `skills/dialectic/PATTERNS.md` for common strategic patterns to consider.
+
+## Holdout Protocol (when loop transitions to "holdout")
+
+When the stop hook transitions the loop to "holdout", execute this protocol:
+
+1. Run serialization: `node "${CLAUDE_PLUGIN_ROOT}/scripts/serialize-trace.js"`
+2. Verify `.claude/dialectic/holdout_input/` contains all three files (conviction_thesis.md, trace_summary.md, holdout_brief.md)
+3. Update state: `holdout_state.phase: "holdout_spawned"` in state.json
+4. Spawn isolated subagent via Bash:
+   ```
+   claude --print -p "Read all files in .claude/dialectic/holdout_input/ and execute the instructions in holdout_brief.md. Write your report to .claude/dialectic/holdout_report.md"
+   ```
+5. Read `.claude/dialectic/holdout_report.md`
+6. Extract verdict (VALIDATED/CHALLENGED/FRACTURED)
+7. Update state.json:
+   - `holdout_state.verdict: "<verdict>"`
+   - `holdout_state.report_path: ".claude/dialectic/holdout_report.md"`
+   - If CHALLENGED: merge adjusted confidence scores from the holdout report into `thesis.confidence`
+8. Stop responding. The stop hook handles the transition to `awaiting_distillation` or re-loop.
