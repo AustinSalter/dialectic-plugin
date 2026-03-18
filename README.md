@@ -1,6 +1,6 @@
 # Dialectic Plugin for Claude Code
 
-Multi-pass reasoning for strategic questions. Iterates through expansion, compression, and critique until a thesis is robust — or proved wrong.
+Multi-pass reasoning for strategic questions. Iterates through expansion, compression, and critique until a thesis is robust — then synthesizes into conviction memos or engineering build specs.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-Plugin-blueviolet)](https://claude.ai)
@@ -29,7 +29,7 @@ git clone https://github.com/AustinSalter/dialectic-plugin.git
 - **Iterative dialectic reasoning** — Expansion, compression, and critique passes that argue against themselves before concluding
 - **3D confidence tracking** — Robustness, evidence saturation, and domain determinacy replace single-scalar guesswork
 - **Frame selection** — Calibrates altitude before searching. "Better docs" becomes "developer adoption → switching costs → infrastructure moat"
-- **Two-loop architecture** — Reasoning explores (messy, exhaustive). Distillation compresses (every sentence earns its place). A stop hook enforces the boundary.
+- **Multi-loop architecture** — Reasoning explores, distillation compresses, forge extracts. Optional holdout validation between reasoning and synthesis. A stop hook enforces every boundary.
 - **Conviction memo output** — Structured for action: headline insight, the bet, falsification triggers, first Monday move
 - **Adversarial probes** — Five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) gate the final memo before it ships
 - **Holdout validation** — Partitioned adversarial audit via isolated subagent. Catches buried evidence, confidence inflation, and question drift the internal critique missed
@@ -88,8 +88,8 @@ Single-pass AI treats strategy as text generation: query in, answer out. But str
 This plugin engineers the conditions for what the Greeks called *aporia*: productive confusion that precedes genuine insight. It forces the model to argue against itself before concluding, because a thesis that hasn't survived adversarial pressure isn't a thesis — it's a first draft.
 
 ```
- LOOP 1: REASONING
- ═══════════════════════════════════════════════════════════════
+ REASONING LOOP
+ ══════════════════════════════════════════════════════════════
 
  ┌─────────────┐      ┌─────────────┐      ┌──────────────┐
  │  EXPANSION  │─────▶│ COMPRESSION │─────▶│   CRITIQUE   │
@@ -105,43 +105,41 @@ This plugin engineers the conditions for what the Greeks called *aporia*: produc
        └────── [CONTINUE]                   [ELEVATE]    [CONCLUDE]
                loop back                  reframe thesis       │
                                                                │
-                                                    ┌──────────┴──────────┐
-                                                    │     HOLDOUT         │
-                                                    │  (if --holdout)     │
-                                                    │  partitioned audit  │
-                                                    └──────────┬──────────┘
+ HOLDOUT (optional, if --holdout)                              │
+ ══════════════════════════════════════════════════════════════ │
                                                                │
-                                                        ── stop hook ──
-                                                               │
-                                              ┌────────────────┴────────────────┐
-                                              │                                 │
- LOOP 2: DISTILLATION                         │          LOOP 3: FORGE          │
- ═════════════════════════════════════════     │     ════════════════════════    │
-                                              │                                 │
- ┌─────────────┐      ┌─────────────┐        │     ┌─────────────┐             │
- │    SPINE    │─────▶│    DRAFT    │─────┐   │     │    DRAFT    │─────┐       │
- │             │      │             │     │   │     │             │     │       │
- │  Extract    │      │  Write to   │     │   │     │  Translate  │     │       │
- │  load-      │      │  SYNTHESIS  │     │   │     │  markers →  │     │       │
- │  bearing    │      │  spec       │     │   │     │  build spec │     │       │
- │  claims     │      │             │     │   │     │             │     │       │
- └─────────────┘      └─────────────┘     │   │     └─────────────┘     │       │
-       ▲                                  ▼   │           ▲             ▼       │
-       │                           ┌──────────┴─┐        │      ┌──────────┐   │
-       │                           │   PROBES   │◀───────┘      │ QUALITY  │   │
-       │                           │            │               │ CHECKS   │   │
-       │                           │  Trace     │               │ (7 gates)│   │
-       │                           │  Tension   │               └─────┬────┘   │
-       │                           │  Sufficiency                     │        │
-       │                           │  Ink       │               ┌─────┴────┐   │
-       │                           │  Threads   │               │          │   │
-       │                           └──────┬─────┘               ▼          ▼   │
-       │                                  │              [CONTINUE]  [CONCLUDE]│
-       │               ┌──────────────────┤               revise     promote   │
-       │               │                  │                          to report  │
-       │               ▼                  ▼                                     │
-       └────── [CONTINUE]           [CONCLUDE]                                 │
-               revise draft       promote to final                             │
+                                          ┌────────────────────┘
+                                          ▼
+                                   ┌──────────────┐
+                                   │   HOLDOUT    │
+                                   │  subagent    │
+                                   │              │
+                                   │  Structural  │
+                                   │  audit →     │
+                                   │  Steelman →  │
+                                   │  Inversion   │
+                                   └──────┬───────┘
+                                          │
+                            ┌─────────────┼─────────────┐
+                            │             │             │
+                            ▼             ▼             ▼
+                       VALIDATED     CHALLENGED     FRACTURED
+                       (proceed)     (proceed w/    (re-loop with
+                                      findings)     counter-thesis)
+
+ SYNTHESIS (user chooses one or both)
+ ══════════════════════════════════════════════════════════════
+
+ /dialectic-distill                    /forge
+ ┌─────────────┐                       ┌──────────────┐
+ │    SPINE    │─────▶ DRAFT ──▶       │    DRAFT     │
+ │  extract    │      PROBES           │  translate   │──▶ QUALITY
+ │  claims     │  (5 adversarial       │  markers →   │    CHECKS
+ └─────────────┘   gates)              │  build spec  │   (7 gates)
+       ▲               │               └──────────────┘       │
+       └── [CONTINUE]──┘                    ▲                 │
+            revise                          └── [CONTINUE] ───┘
+                                                 revise
 ```
 
 Each phase operationalizes a move from the dialectical tradition — Socratic cross-examination, Hegelian sublation, Aristotelian stasis classification — without requiring the vocabulary.
@@ -152,13 +150,13 @@ Each phase operationalizes a move from the dialectical tradition — Socratic cr
 
 **Critique** tries to break the thesis. A preservation gate prevents abstraction drift — you can't elevate without first articulating what the thesis got right.
 
-**Distillation** extracts the spine (load-bearing claims + causal chain), drafts against the SYNTHESIS.md spec, and runs five probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads). Minimum 2 passes; pass 2+ is adversarial.
+**Holdout** (optional, via `--holdout`) spawns an isolated subagent that has never seen the reasoning narrative. It sees only the evidence inventory and confidence trajectory — enough to audit, not enough to be anchored. Three attack passes: structural audit (buried evidence, confidence inflation, question drift, circular support), adversarial steelman (unengaged counters, disconfirmation quality, Pollock defeater classification), and the inversion (can you construct a coherent counter-narrative from the same evidence?). Verdict: VALIDATED, CHALLENGED, or FRACTURED. A FRACTURED verdict automatically re-enters the reasoning loop with the holdout's counter-thesis.
 
-**Holdout** (optional, via `--holdout`) spawns an isolated subagent that has never seen the reasoning narrative. It sees only the evidence inventory and confidence trajectory — enough to audit, not enough to be anchored. Three attack passes: structural audit (buried evidence, confidence inflation, question drift, circular support), adversarial steelman (unengaged counters, disconfirmation quality, Pollock defeater classification), and the inversion (can you construct a coherent counter-narrative from the same evidence?). Verdict: VALIDATED, CHALLENGED, or FRACTURED.
+**Distillation** extracts the spine (load-bearing claims + causal chain), drafts against the SYNTHESIS.md spec, and runs five probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads). Minimum 2 passes; pass 2+ is adversarial. If holdout ran, findings are injected automatically.
 
-**Forge** translates the same trace into an engineering build spec. Where distill closes every tension (conviction requires resolution), forge preserves tensions as architectural seams with explicit degrees of freedom. The marker translation table maps evidence to constraints, counters to risks with mitigations and monitoring signals, tensions to decision points with seam locations and revisit triggers, insights to design principles, and threads to Phase 2 extension points.
+**Forge** translates the same trace into an engineering build spec. Where distill closes every tension (conviction requires resolution), forge preserves tensions as architectural seams with explicit degrees of freedom. The marker translation table maps evidence to constraints, counters to risks with mitigations and monitoring signals, tensions to decision points with seam locations and revisit triggers, insights to design principles, and threads to Phase 2 extension points. Multi-pass loop with 7 quality gates.
 
-The loops are structurally independent. The reasoning loop explores — messy, exhaustive, 5,000+ words of scratchpad. The distillation loop compresses — every sentence must earn its place. The forge loop extracts — every component justified by trace evidence. A model that reasons and writes simultaneously produces research reports too long to read and too shallow to act on. The stop hook enforces the boundary: finish thinking, then start writing (or building).
+The phases are structurally independent. Reasoning explores — messy, exhaustive, 5,000+ words of scratchpad. Holdout validates — isolated, adversarial, decorrelated from the narrative that produced the thesis. Distillation compresses — every sentence must earn its place. Forge extracts — every component justified by trace evidence. A model that reasons and writes simultaneously produces research reports too long to read and too shallow to act on. The stop hook enforces every boundary: finish thinking, then validate, then start writing (or building).
 
 ### Termination
 
@@ -182,7 +180,7 @@ Confidence should be non-monotonic. A dip means a critique found a real problem;
 
 The architecture draws from thinkers who treated reasoning as adversarial and iterative — not a toolkit of named concepts but structural moves that recur across 2,400 years of serious thought about how minds change.
 
-**Socrates** gave us *elenchus* — cross-examination that creates the conditions for discovering your frame is wrong. **Aristotle** contributed *stasis theory* — not all disagreements are equal; are we arguing about facts, definitions, values, or procedures? The expansion pass classifies the question's stasis level before searching. **Hegel's** *Aufhebung* — negation that preserves what it negates — is the critique pass's preservation gate: you can't elevate without first articulating what the thesis got right. **Walter Benjamin** drew the distinction between information (explains itself on arrival) and narrative (lodges in the reader and unfolds). The reasoning loop produces information; the distillation loop transforms it into narrative. This is why the plugin has two loops, not one.
+**Socrates** gave us *elenchus* — cross-examination that creates the conditions for discovering your frame is wrong. **Aristotle** contributed *stasis theory* — not all disagreements are equal; are we arguing about facts, definitions, values, or procedures? The expansion pass classifies the question's stasis level before searching. **Hegel's** *Aufhebung* — negation that preserves what it negates — is the critique pass's preservation gate: you can't elevate without first articulating what the thesis got right. **Walter Benjamin** drew the distinction between information (explains itself on arrival) and narrative (lodges in the reader and unfolds). The reasoning loop produces information; distillation transforms it into narrative; forge transforms it into architecture. **Pollock's** defeater typology (undercutting vs. rebutting) structures the holdout's adversarial steelman — undercutting defeaters that break inferential links are more dangerous than rebutting defeaters that provide counter-evidence.
 
 The conviction memo format descends from **Cicero** — propositio, narratio, refutatio, peroratio — because Roman juries had short attention spans and the advocate who wasted their time lost. The same constraint applies to anyone reading your analysis. **Orwell's** compression axioms ("omit needless words") become formal probes: does every sentence advance the argument, provide evidence, or acknowledge risk?
 
