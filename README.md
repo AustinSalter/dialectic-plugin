@@ -32,6 +32,8 @@ git clone https://github.com/AustinSalter/dialectic-plugin.git
 - **Two-loop architecture** — Reasoning explores (messy, exhaustive). Distillation compresses (every sentence earns its place). A stop hook enforces the boundary.
 - **Conviction memo output** — Structured for action: headline insight, the bet, falsification triggers, first Monday move
 - **Adversarial probes** — Five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) gate the final memo before it ships
+- **Holdout validation** — Partitioned adversarial audit via isolated subagent. Catches buried evidence, confidence inflation, and question drift the internal critique missed
+- **Forge synthesis** — Translates dialectic output into engineering build specs. Evidence becomes constraints, counters become risks, tensions become decision points with seam locations
 
 ## Usage
 
@@ -41,11 +43,12 @@ git clone https://github.com/AustinSalter/dialectic-plugin.git
 /dialectic <thesis or question>
 ```
 
-Optional flags: `--min-iterations=N` (default 3), `--max-iterations=N` (default 5).
+Optional flags: `--min-iterations=N` (default 3), `--max-iterations=N` (default 5), `--holdout` (enable holdout validation).
 
 ```
 /dialectic Should Yahoo acquire Google for $3B in 2002?
 /dialectic --min-iterations=4 "Where should VCs deploy capital in AI?"
+/dialectic --holdout "Should we use event sourcing for the audit service?"
 ```
 
 ### Distill
@@ -57,6 +60,20 @@ After reasoning concludes, compress into a conviction memo:
 ```
 
 Optional flags: `--output=<dir>`, `--keep=<list>`, `--min-passes=N`, `--max-passes=N`.
+
+If holdout ran, distill incorporates findings automatically (challenged → inject counters, validated → append confirmation footer).
+
+### Forge
+
+After reasoning concludes, synthesize into an engineering build spec:
+
+```
+/forge
+```
+
+Optional flags: `--min-passes=N`, `--max-passes=N`, `--output=<path>`.
+
+Translates semantic markers into architectural components: `[EVIDENCE]` → constraints, `[COUNTER]` → risks with mitigations, `[TENSION]` → decision points with seam locations, `[INSIGHT]` → design principles, `[THREAD]` → Phase 2 extension points.
 
 ### Cancel
 
@@ -88,26 +105,43 @@ This plugin engineers the conditions for what the Greeks called *aporia*: produc
        └────── [CONTINUE]                   [ELEVATE]    [CONCLUDE]
                loop back                  reframe thesis       │
                                                                │
+                                                    ┌──────────┴──────────┐
+                                                    │     HOLDOUT         │
+                                                    │  (if --holdout)     │
+                                                    │  partitioned audit  │
+                                                    └──────────┬──────────┘
+                                                               │
                                                         ── stop hook ──
                                                                │
- LOOP 2: DISTILLATION                                          │
- ═══════════════════════════════════════════════════════════════
-                                                               │
- ┌─────────────┐      ┌─────────────┐      ┌──────────────┐   │
- │    SPINE    │─────▶│    DRAFT    │─────▶│    PROBES    │◀──┘
- │             │      │             │      │              │
- │  Extract    │      │  Write to   │      │  Trace       │
- │  load-      │      │  SYNTHESIS  │      │  Tension     │
- │  bearing    │      │  spec       │      │  Sufficiency │
- │  claims     │      │             │      │  Ink         │
- └─────────────┘      └─────────────┘      │  Threads     │
-       ▲                                   └──────┬───────┘
-       │                                          │
-       │               ┌──────────────────────────┤
-       │               │                          │
-       │               ▼                          ▼
-       └────── [CONTINUE]                   [CONCLUDE]
-               revise draft               promote to final
+                                              ┌────────────────┴────────────────┐
+                                              │                                 │
+ LOOP 2: DISTILLATION                         │          LOOP 3: FORGE          │
+ ═════════════════════════════════════════     │     ════════════════════════    │
+                                              │                                 │
+ ┌─────────────┐      ┌─────────────┐        │     ┌─────────────┐             │
+ │    SPINE    │─────▶│    DRAFT    │─────┐   │     │    DRAFT    │─────┐       │
+ │             │      │             │     │   │     │             │     │       │
+ │  Extract    │      │  Write to   │     │   │     │  Translate  │     │       │
+ │  load-      │      │  SYNTHESIS  │     │   │     │  markers →  │     │       │
+ │  bearing    │      │  spec       │     │   │     │  build spec │     │       │
+ │  claims     │      │             │     │   │     │             │     │       │
+ └─────────────┘      └─────────────┘     │   │     └─────────────┘     │       │
+       ▲                                  ▼   │           ▲             ▼       │
+       │                           ┌──────────┴─┐        │      ┌──────────┐   │
+       │                           │   PROBES   │◀───────┘      │ QUALITY  │   │
+       │                           │            │               │ CHECKS   │   │
+       │                           │  Trace     │               │ (7 gates)│   │
+       │                           │  Tension   │               └─────┬────┘   │
+       │                           │  Sufficiency                     │        │
+       │                           │  Ink       │               ┌─────┴────┐   │
+       │                           │  Threads   │               │          │   │
+       │                           └──────┬─────┘               ▼          ▼   │
+       │                                  │              [CONTINUE]  [CONCLUDE]│
+       │               ┌──────────────────┤               revise     promote   │
+       │               │                  │                          to report  │
+       │               ▼                  ▼                                     │
+       └────── [CONTINUE]           [CONCLUDE]                                 │
+               revise draft       promote to final                             │
 ```
 
 Each phase operationalizes a move from the dialectical tradition — Socratic cross-examination, Hegelian sublation, Aristotelian stasis classification — without requiring the vocabulary.
@@ -120,11 +154,15 @@ Each phase operationalizes a move from the dialectical tradition — Socratic cr
 
 **Distillation** extracts the spine (load-bearing claims + causal chain), drafts against the SYNTHESIS.md spec, and runs five probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads). Minimum 2 passes; pass 2+ is adversarial.
 
-The two loops are structurally independent. The reasoning loop explores — messy, exhaustive, 5,000+ words of scratchpad. The distillation loop compresses — every sentence must earn its place. A model that reasons and writes simultaneously produces research reports too long to read and too shallow to act on. The stop hook enforces the boundary: finish thinking, then start writing.
+**Holdout** (optional, via `--holdout`) spawns an isolated subagent that has never seen the reasoning narrative. It sees only the evidence inventory and confidence trajectory — enough to audit, not enough to be anchored. Three attack passes: structural audit (buried evidence, confidence inflation, question drift, circular support), adversarial steelman (unengaged counters, disconfirmation quality, Pollock defeater classification), and the inversion (can you construct a coherent counter-narrative from the same evidence?). Verdict: VALIDATED, CHALLENGED, or FRACTURED.
+
+**Forge** translates the same trace into an engineering build spec. Where distill closes every tension (conviction requires resolution), forge preserves tensions as architectural seams with explicit degrees of freedom. The marker translation table maps evidence to constraints, counters to risks with mitigations and monitoring signals, tensions to decision points with seam locations and revisit triggers, insights to design principles, and threads to Phase 2 extension points.
+
+The loops are structurally independent. The reasoning loop explores — messy, exhaustive, 5,000+ words of scratchpad. The distillation loop compresses — every sentence must earn its place. The forge loop extracts — every component justified by trace evidence. A model that reasons and writes simultaneously produces research reports too long to read and too shallow to act on. The stop hook enforces the boundary: finish thinking, then start writing (or building).
 
 ### Termination
 
-Reasoning ends when critique CONCLUDEs and the iteration floor is met, confidence saturates (delta < 0.05 for two cycles), or max iterations hit. Distillation ends when all five probes pass and the compression gate is satisfied.
+Reasoning ends when critique CONCLUDEs and the iteration floor is met, confidence saturates (delta < 0.05 for two cycles), or max iterations hit. If `--holdout` is enabled, holdout runs automatically before transitioning to the synthesis-ready state. Distillation ends when all five probes pass and the compression gate is satisfied. Forge ends when all seven quality checks pass.
 
 ### 3D Confidence
 
@@ -156,8 +194,9 @@ The conviction memo format descends from **Cicero** — propositio, narratio, re
 dialectic-plugin/
 ├── .claude-plugin/         # Plugin metadata
 ├── commands/
-│   ├── dialectic.md        # Reasoning loop command
-│   ├── dialectic-distill.md # Distillation command
+│   ├── dialectic.md        # Reasoning loop command (--holdout flag)
+│   ├── dialectic-distill.md # Distillation command (holdout-aware)
+│   ├── forge.md            # Forge build spec command
 │   └── cancel-dialectic.md # Cancel command
 ├── skills/dialectic/
 │   ├── SKILL.md            # Skill overview
@@ -168,12 +207,15 @@ dialectic-plugin/
 │   ├── DISTILLATION.md     # Distillation loop protocol + probes
 │   ├── ESCAPE-HATCH.md     # Low-confidence forced exit
 │   ├── MARKERS.md          # Semantic marker definitions
-│   └── PATTERNS.md         # Strategic patterns library
+│   ├── PATTERNS.md         # Strategic patterns library
+│   ├── HOLDOUT.md          # Holdout adversarial audit instructions
+│   └── FORGE.md            # Forge build spec synthesis instructions
 ├── hooks/
 │   └── hooks.json          # Stop hook config
 ├── scripts/
 │   ├── stop-hook.sh        # Loop controller (macOS/Linux)
-│   └── stop-hook.js        # Loop controller (cross-platform)
+│   ├── stop-hook.js        # Loop controller (cross-platform)
+│   └── serialize-trace.js  # Trace serialization for holdout
 └── README.md
 ```
 

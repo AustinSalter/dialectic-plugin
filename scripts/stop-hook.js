@@ -74,6 +74,9 @@ const ARTIFACT_MAP = {
   scratchpad: "scratchpad.md",
   draft: "memo-draft.md",
   state: "state.json",
+  holdout_report: "holdout_report.md",
+  forge_report: "forge_report.md",
+  forge_draft: "forge-draft.md",
 };
 
 function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
@@ -130,6 +133,19 @@ if (loop === "reasoning") {
       state.decision = "continue";
       writeState(state);
       // Fall through to continue block
+    } else if (state.holdout === true) {
+      // REASONING COMPLETE with holdout — transition to holdout phase
+      state.loop = "holdout";
+      writeState(state);
+      log("");
+      log("================================================");
+      log("  Reasoning loop complete! Running holdout validation...");
+      log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
+      log("================================================");
+
+      blockStop(
+        `Reasoning concluded with --holdout enabled. Run the holdout protocol from commands/dialectic.md: serialize the trace, spawn the holdout subagent, extract the verdict, and update state.json.`
+      );
     } else {
       // REASONING COMPLETE — exit cleanly, user invokes distillation separately
       state.loop = "awaiting_distillation";
@@ -141,6 +157,7 @@ if (loop === "reasoning") {
       log("");
       log("  Run /dialectic:dialectic-distill to produce");
       log("  the conviction memo.");
+      log("  Run /dialectic:forge to produce build spec.");
       log("================================================");
       process.exit(0);
     }
@@ -181,23 +198,40 @@ if (loop === "reasoning") {
 
   // Check iteration limit — reasoning complete, user invokes distillation separately
   if (iteration >= maxIterations) {
-    state.loop = "awaiting_distillation";
-    writeState(state);
-
     let escapeNote = "";
     if (E < 0.5) escapeNote += ` E=${E} (low evidence saturation).`;
     if (C < 0.5) escapeNote += ` C=${C} (low domain determinacy).`;
 
-    log("");
-    log("================================================");
-    log(`  Max iterations reached (${iteration}/${maxIterations})`);
-    log(`  R: ${R} | E: ${E} | C: ${C}`);
-    if (escapeNote) log(`  Note:${escapeNote}`);
-    log("");
-    log("  Run /dialectic:dialectic-distill to produce");
-    log("  the conviction memo.");
-    log("================================================");
-    process.exit(0);
+    if (state.holdout === true) {
+      // Max iterations with holdout — transition to holdout phase
+      state.loop = "holdout";
+      writeState(state);
+      log("");
+      log("================================================");
+      log(`  Max iterations reached (${iteration}/${maxIterations})`);
+      log(`  R: ${R} | E: ${E} | C: ${C}`);
+      if (escapeNote) log(`  Note:${escapeNote}`);
+      log("  Running holdout validation...");
+      log("================================================");
+
+      blockStop(
+        `Max iterations reached with --holdout enabled. Run the holdout protocol from commands/dialectic.md: serialize the trace, spawn the holdout subagent, extract the verdict, and update state.json.`
+      );
+    } else {
+      state.loop = "awaiting_distillation";
+      writeState(state);
+      log("");
+      log("================================================");
+      log(`  Max iterations reached (${iteration}/${maxIterations})`);
+      log(`  R: ${R} | E: ${E} | C: ${C}`);
+      if (escapeNote) log(`  Note:${escapeNote}`);
+      log("");
+      log("  Run /dialectic:dialectic-distill to produce");
+      log("  the conviction memo.");
+      log("  Run /dialectic:forge to produce build spec.");
+      log("================================================");
+      process.exit(0);
+    }
   }
 
   // Continue reasoning loop — increment iteration and re-feed
@@ -301,5 +335,148 @@ if (loop === "reasoning") {
 
   blockStop(
     `Continue the distillation loop. Run all five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) and the Compression Gate against the current draft. Revise if any probe fails or the gate is incomplete. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md.`
+  );
+
+// ============================================================
+// HOLDOUT LOOP
+// ============================================================
+} else if (loop === "holdout") {
+
+  const holdoutState = state.holdout_state || {};
+  const holdoutVerdict = holdoutState.verdict || null;
+  const holdoutPass = holdoutState.pass || 1;
+  const holdoutMaxPasses = holdoutState.max_passes || 2;
+
+  if (holdoutVerdict) {
+    // Verdict has been set — process it
+    if (holdoutVerdict === "FRACTURED" && holdoutPass < holdoutMaxPasses) {
+      // FRACTURED but more passes allowed — re-loop
+      state.holdout_state.pass = holdoutPass + 1;
+      state.holdout_state.verdict = null;
+      state.loop = "reasoning";
+      state.iteration = 0;
+      state.decision = null;
+      state.phase = "expansion";
+      writeState(state);
+
+      log("");
+      log("================================================");
+      log(`  Holdout FRACTURED the thesis (pass ${holdoutPass}/${holdoutMaxPasses})`);
+      log("  Re-entering reasoning loop with counter-thesis...");
+      log("================================================");
+
+      blockStop(
+        `Holdout fractured the thesis. Extract the counter-thesis from .claude/dialectic/holdout_report.md (look for the Recommendation section with RE-LOOP thesis). Run a fresh reasoning cycle with the counter-thesis: read the holdout report, adopt the counter-thesis, update state.json with the new thesis, and begin expansion. The holdout will re-run automatically when reasoning concludes.`
+      );
+    } else {
+      // VALIDATED, CHALLENGED, or FRACTURED at max passes — transition to awaiting_distillation
+      state.loop = "awaiting_distillation";
+      writeState(state);
+
+      log("");
+      log("================================================");
+      log("  Reasoning loop complete!");
+      log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
+      log(`  Holdout verdict: ${holdoutVerdict}`);
+      log("");
+      log("  Run /dialectic:dialectic-distill to produce");
+      log("  the conviction memo.");
+      log("  Run /dialectic:forge to produce build spec.");
+      log("================================================");
+      process.exit(0);
+    }
+  } else {
+    // Verdict not yet set — holdout subagent may still be running or results need processing
+    blockStop(
+      `Process the holdout results. Read .claude/dialectic/holdout_report.md, extract the verdict (VALIDATED/CHALLENGED/FRACTURED), and update state.json: set holdout_state.verdict to the verdict and holdout_state.report_path to ".claude/dialectic/holdout_report.md". If CHALLENGED, merge the adjusted confidence scores from the report into thesis.confidence.`
+    );
+  }
+
+// ============================================================
+// FORGE LOOP
+// ============================================================
+} else if (loop === "forge") {
+
+  const forgeIter = state.forge_iteration || 1;
+  const forgeMax = state.forge_max || 4;
+  const forgeMin = state.forge_min || 2;
+
+  if (decision === "conclude" && forgeIter < forgeMin) {
+    // Enforce minimum forge passes
+    log("");
+    log("================================================");
+    log("  CONCLUDE overridden — below forge floor");
+    log(`  Forge pass ${forgeIter} < min ${forgeMin}`);
+    log("  Quality checks need adversarial re-evaluation.");
+    log("================================================");
+    state.decision = null;
+    state.forge_iteration = forgeIter + 1;
+    writeState(state);
+
+    blockStop(
+      `Forge pass ${forgeIter} is below the minimum (${forgeMin}). Revise the forge spec based on quality check failures. Re-read .claude/dialectic/forge-draft.md and the quality check results. Fix the failing checks, update the draft, re-run all 7 checks. Follow skills/dialectic/FORGE.md.`
+    );
+  }
+
+  if (decision === "conclude") {
+    // Forge complete — promote draft to report
+    log("");
+    log("================================================");
+    log("  Forge complete! Build spec finalized.");
+    log(`  Reasoning iterations: ${iteration}`);
+    log(`  Forge iterations: ${forgeIter}`);
+    log(`  Final — R: ${R} | E: ${E} | C: ${C}`);
+
+    // Promote forge-draft to forge_report (hook owns this transition)
+    const draftPath = path.join(STATE_DIR, "forge-draft.md");
+    const reportPath = path.join(STATE_DIR, "forge_report.md");
+    if (fs.existsSync(draftPath) && !fs.existsSync(reportPath)) {
+      fs.copyFileSync(draftPath, reportPath);
+    }
+
+    // Mark forge as complete but do NOT clean up — user may still run distill
+    state.loop = "awaiting_distillation";
+    if (!state.synthesis) state.synthesis = {};
+    state.synthesis.forge_run = true;
+    state.synthesis.forge_path = ".claude/dialectic/forge_report.md";
+    writeState(state);
+
+    log(`  Forge report: .claude/dialectic/forge_report.md`);
+    log("");
+    log("  Run /dialectic:dialectic-distill to also produce");
+    log("  a conviction memo, or /dialectic:cancel-dialectic");
+    log("  to preserve artifacts and clean up.");
+    log("================================================");
+    process.exit(0);
+  }
+
+  if (forgeIter >= forgeMax) {
+    // Force conclude forge
+    log("");
+    log("================================================");
+    log(`  Forge max iterations reached (${forgeIter}/${forgeMax})`);
+    log("  Finalize the spec as-is.");
+    log("================================================");
+    state.decision = "conclude";
+    writeState(state);
+
+    blockStop(
+      `Forge loop hit max iterations. Set decision to "conclude" in state.json. The stop hook will promote forge-draft.md to forge_report.md. Read state from .claude/dialectic/state.json.`
+    );
+  }
+
+  // Continue forge — increment and re-feed
+  state.forge_iteration = forgeIter + 1;
+  state.decision = null;
+  writeState(state);
+
+  log("");
+  log("================================================");
+  log(`  Forge iteration ${forgeIter + 1} / ${forgeMax}`);
+  log(`  Phase: ${state.forge_phase || "drafting"}`);
+  log("================================================");
+
+  blockStop(
+    `Revise the forge spec based on quality check failures. Re-read .claude/dialectic/forge-draft.md and the quality check results. Fix the failing checks, update the draft, re-run all 7 checks. Follow skills/dialectic/FORGE.md.`
   );
 }

@@ -11,8 +11,11 @@ Clean up and exit the dialectic reasoning loop.
 1. Check if `.claude/dialectic/` directory exists
 2. If it exists:
    - Read `.claude/dialectic/state.json` to report current iteration and confidence
-   - If `loop` is `"awaiting_distillation"`, note that reasoning is complete and distillation hasn't been run yet — the user can still run `/dialectic:dialectic-distill` instead of cancelling
-   - Preserve artifacts to the configured output directory (`output_dir` from state, default `.dialectic-output/`) using the configured `keep_artifacts` list (default: `memo,spine,history`). Copy each artifact file that exists, create a `manifest.json` with session metadata, and place everything in `{output_dir}/{session_id}/`
+   - If `loop` is `"awaiting_distillation"`, note that reasoning is complete and distillation hasn't been run yet — the user can still run `/dialectic:dialectic-distill` or `/dialectic:forge` instead of cancelling
+   - If `loop` is `"holdout"`, note that the holdout phase is active. Report holdout verdict if set.
+   - If `loop` is `"forge"`, note that forge synthesis is in progress. Report forge iteration.
+   - Report holdout verdict from `holdout_state.verdict` if it has been set (regardless of current loop state)
+   - Preserve artifacts to the configured output directory (`output_dir` from state, default `.dialectic-output/`) using the configured `keep_artifacts` list (default: `memo,spine,history`). Copy each artifact file that exists (including `holdout_report.md`, `forge_report.md`, `forge-draft.md` if present), create a `manifest.json` with session metadata, and place everything in `{output_dir}/{session_id}/`
    - Report where artifacts were saved (if any files existed to preserve)
    - Remove the entire `.claude/dialectic/` directory
    - Confirm cancellation to user with summary of where analysis stopped
