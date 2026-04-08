@@ -10,16 +10,22 @@ Iterative reasoning architecture that separates divergent exploration from conve
 ## Architecture Overview
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  EXPANSION  │────▶│ COMPRESSION │────▶│   CRITIQUE  │
-│  (diverge)  │     │  (converge) │     │  (decide)   │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-      ▲                                        │
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  EXPANSION  │────▶│ ADVERSARIAL │────▶│ COMPRESSION │────▶│   CRITIQUE  │
+│  (diverge)  │     │ (red team)  │     │  (converge) │     │  (decide)   │
+└─────────────┘     └─────────────┘     └─────────────┘     └──────┬──────┘
+      ▲                    │                                       │
+      │                    │ competing                             │
+      │                    │ programme?                            │
+      │                    ▼                                       │
+      │             [background                                   │
+      │              explorer]                                    │
+      │                                                           │
       │              ┌─────────────────────────┼─────────────────────────┐
       │              │                         │                         │
       │              ▼                         ▼                         ▼
       └────── [CONTINUE]                 [CONCLUDE]                 [ELEVATE]
-              loop back                        │                  revise thesis
+              loop back                        │                  reframe thesis
                                                │
                                         ┌──────┴──────┐
                                         │  HOLDOUT    │ (if --holdout)
@@ -53,9 +59,10 @@ Iterative reasoning architecture that separates divergent exploration from conve
 
 | Pass | When to Use | Output |
 |------|-------------|--------|
-| **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, etc. |
-| **Compression** | After expansion, to synthesize findings | Structured state (insights, tensions, threads, confidence) |
-| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/PIVOT) with reasoning |
+| **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, `[AMBIGUOUS]`, etc. |
+| **Adversarial** | After expansion, before compression | Red team findings with `[RED_TEAM]`, severity ratings, lightweight inversion, competing programme detection |
+| **Compression** | After adversarial, to synthesize findings | Structured state with severity-rated evidence |
+| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE) with programme assessment |
 | **Synthesis** | When concluding, to produce final output | Final thesis with confidence and key evidence |
 | **Escape Hatch** | Max iterations reached with low confidence | Honest assessment of blockers and limitations |
 
@@ -81,6 +88,7 @@ Passes receive working memory as context. Standard format:
 ## Pass Instructions
 
 **Expansion**: See [EXPANSION.md](EXPANSION.md)
+**Adversarial**: See [ADVERSARIAL.md](ADVERSARIAL.md) — red team search (Popperian severity), lightweight inversion (Hegelian determinate negation), competing programme detection (Lakatos)
 **Compression**: See [COMPRESSION.md](COMPRESSION.md)
 **Critique**: See [CRITIQUE.md](CRITIQUE.md) — includes 6 questioning techniques, problem-type routing, 3D confidence
 **Synthesis**: See [SYNTHESIS.md](SYNTHESIS.md)
