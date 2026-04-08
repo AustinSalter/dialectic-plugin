@@ -38,7 +38,7 @@ Each iteration, evaluate whether the current research programme is progressive o
 |--------|------------|--------|
 | **PROGRESSIVE** | This iteration predicted novel evidence that was confirmed, OR the thesis expanded to cover new domains without ad hoc modification. Red team found no severe challenges. | Programme is healthy — CONTINUE is appropriate |
 | **DEGENERATING** | This iteration only patched the protective belt to accommodate anomalies, without predicting anything new. Or red team BROKE a claim and fix was ad hoc. | Programme is stalling — consider alternatives |
-| **STAGNANT** | No meaningful change from previous iteration — same evidence, same thesis, no new predictions. Evidence base needs enrichment. | Programme has exhausted its productive potential |
+| **STAGNANT** | No meaningful change from previous iteration — same evidence, same thesis, no new predictions. The next iteration must gather new evidence before re-entering critique. | Programme has exhausted its productive potential |
 
 Read `programme_status.consecutive_degenerating` from state.json. If not present, initialize to 0.
 - If PROGRESSIVE: reset `consecutive_degenerating` to 0
@@ -53,7 +53,7 @@ programme_status:
 
 ## Alternate Frame Probe (Chamberlin)
 
-**Activates only when `consecutive_degenerating >= 1`.** Early iterations should work the current thesis hard before exploring alternatives. This is Lakatos's insight: rational persistence through anomalies, not premature abandonment.
+**Activates only when `consecutive_degenerating >= 1`.** The activation gate enforces this: until degeneration is detected, every iteration stays on the current thesis. This is Lakatos's insight: rational persistence through anomalies, not premature abandonment.
 
 When active, articulate at least one competing frame that could explain the same evidence differently.
 
@@ -75,7 +75,7 @@ alternate_frame:
 
 **If not active**: output `alternate_frame.active: false` and skip.
 
-**If viable**: this is a candidate for background exploration (Phase 2). In Phase 1, note it for the human. It does NOT trigger FORK — the main loop continues on the current thesis.
+**If viable**: record it in the `alternate_frame` yaml output. Background exploration is out of scope for this pass — flag it for the human in the critique output. It does NOT trigger FORK — the main loop continues on the current thesis.
 
 ## Convergence Check (when explorations available)
 
@@ -101,7 +101,7 @@ convergence:
 - `continue`: No exploration is more progressive than the current programme
 - `human_choice_required`: An exploration is progressive AND current programme is degenerating, but the choice is ambiguous — in interactive mode, this triggers the CHOOSE pause
 
-If `recommendation: "switch"` and NOT in interactive mode: the critique should issue ELEVATE with the exploration's thesis as the elevated thesis.
+If `recommendation: "switch"` and NOT in interactive mode: issue ELEVATE with the exploration's thesis as the elevated thesis.
 
 If `recommendation: "human_choice_required"` and in interactive mode (`--interactive=steering` or `--interactive=full`): the stop hook will pause for human input.
 
@@ -115,7 +115,7 @@ Use `WebSearch` to verify or challenge key claims from the expansion pass. Budge
 - Expert opinions that contradict the current thesis framing
 - Data that resolves identified `[TENSION]` markers
 
-Mark any web-sourced findings that change probe outcomes. If a probe result would differ with updated evidence, note the delta.
+For any web-sourced finding that changes a probe outcome, append `[WEB]` to the probe's rationale in the output yaml and state what changed. If a probe result would differ with updated evidence, state the original result and the revised result in the probe's rationale.
 
 ## Preservation Gate (Required)
 
@@ -148,7 +148,7 @@ If `should_it_have: yes` for any counter → the thesis needs ELEVATE, not CONCL
 
 ## Evidence Gate for ELEVATE
 
-The "Original" ELEVATE trigger (altitude wrong or amputated counters) requires **E ≥ 0.4**. If the altitude appears wrong but E < 0.4, the critique doesn't have enough evidence to know what the right altitude *is*. Elevating on thin evidence produces a guess, not a grounded reframe.
+The "Original" ELEVATE trigger (altitude wrong or amputated counters) requires evidence saturation (E from `thesis.confidence.E` in state.json) of 0.4 or higher. If the altitude appears wrong but E < 0.4, you lack the evidence to know what the right altitude is. Elevating on thin evidence produces a guess, not a grounded reframe.
 
 - E < 0.4 AND altitude suspect → **CONTINUE** with `altitude_suspect: true` and `data_needed` explaining what evidence would clarify the right altitude
 - E ≥ 0.4 AND altitude wrong → **ELEVATE** with full preservation gate
@@ -169,10 +169,10 @@ ELEVATE fires when ANY of these conditions is met:
 
 1. **Original**: E >= 0.4 AND altitude wrong or amputated counters detected (unchanged)
 2. **Lakatosian**: `consecutive_degenerating >= 2` — programme has been degenerating for 2+ iterations
-3. **Adversarial**: red team search BROKEN a load-bearing claim AND no non-ad-hoc repair exists within the current frame
+3. **Adversarial**: red team has BROKEN a load-bearing claim AND no non-ad-hoc repair exists within the current frame
 4. **Chamberlin** (late): Viable alternate frame AND `consecutive_degenerating >= 1`
 
-ELEVATE no longer waits for exhaustive failure. It fires the moment sustained degeneration is detected.
+ELEVATE fires on sustained degeneration, not exhaustive failure.
 
 **CONCLUDE only when you can state:**
 - The bet: "X > Y because mechanism Z"
@@ -201,6 +201,7 @@ preservation:
   must_retain: [non-negotiable elements]
 
 decision: [CONTINUE | CONCLUDE | ELEVATE]
+elevate_trigger: "original" | "lakatosian" | "adversarial" | "chamberlin"  # only when ELEVATE
 
 # Include ONE of the following based on decision:
 
@@ -285,4 +286,8 @@ if_elevate:
 
 ## CRITICAL: Stop After Writing Decision
 
-After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), programme_status, alternate_frame, and convergence (if a convergence check was performed), and appending to `thesis-history.md`, **stop responding immediately**. Do not write anything else. Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. Your response ends here — the stop hook reads `state.json` and handles what comes next.
+After writing your critique output:
+
+1. Update `state.json`: decision, elevate_trigger (if ELEVATE), programme_status, alternate_frame, convergence (if checked).
+2. Append to `thesis-history.md`.
+3. **Stop responding immediately.** Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. The stop hook reads `state.json` and handles what comes next.

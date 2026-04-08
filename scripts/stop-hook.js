@@ -116,6 +116,41 @@ function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
   return sessionDir;
 }
 
+// Wait barrier: before terminal decisions (CONCLUDE/ELEVATE/max-iterations),
+// wait for active background explorations to complete (up to 120s).
+// Returns true if new results arrived during the wait.
+function waitForExplorations(state) {
+  const active = (state.explorations && state.explorations.active) || [];
+  if (active.length === 0) return false;
+
+  const explorationsDir = path.join(STATE_DIR, "explorations");
+  if (!fs.existsSync(explorationsDir)) return false;
+
+  const initialCount = fs.readdirSync(explorationsDir).filter(f => f.endsWith(".md")).length;
+  if (initialCount >= active.length) return false; // all results already present
+
+  const pending = active.length - initialCount;
+  log(`  Waiting for ${pending} background exploration(s) (timeout: 120s)...`);
+
+  const { execSync } = require("child_process");
+  const timeoutMs = 120000;
+  const pollMs = 5000;
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    execSync("sleep 5");
+    const count = fs.readdirSync(explorationsDir).filter(f => f.endsWith(".md")).length;
+    if (count >= active.length) {
+      log(`  Explorations completed (${count} result(s))`);
+      return true;
+    }
+  }
+
+  const finalCount = fs.readdirSync(explorationsDir).filter(f => f.endsWith(".md")).length;
+  log(`  Exploration timeout — ${finalCount}/${active.length} completed`);
+  return finalCount > initialCount; // true if any new results arrived
+}
+
 // ============================================================
 // REASONING LOOP
 // ============================================================
@@ -133,40 +168,51 @@ if (loop === "reasoning") {
       state.decision = "continue";
       writeState(state);
       // Fall through to continue block
-    } else if (state.holdout === true) {
-      // REASONING COMPLETE with holdout — transition to holdout phase
-      state.loop = "holdout";
-      writeState(state);
-      log("");
-      log("================================================");
-      log("  Reasoning loop complete! Running holdout validation...");
-      log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
-      log("================================================");
-
-      blockStop(
-        `Reasoning concluded with --holdout enabled. Run the holdout protocol from commands/dialectic.md: serialize the trace, spawn the holdout subagent, extract the verdict, and update state.json.`
-      );
     } else {
-      // REASONING COMPLETE — exit cleanly, user invokes distillation separately
-      state.loop = "awaiting_distillation";
-      writeState(state);
-      log("");
-      log("================================================");
-      log("  Reasoning loop complete!");
-      log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
-      log("");
-      log("  Run /dialectic:dialectic-distill to produce");
-      log("  the conviction memo.");
-      log("  Run /dialectic:forge to produce build spec.");
-      log("================================================");
-      process.exit(0);
+      // Wait barrier: wait for active explorations before finalizing
+      if (waitForExplorations(state)) {
+        blockStop(
+          `Background exploration(s) completed while concluding. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the CONCLUDE decision. Update convergence in state.json.`
+        );
+      }
+
+      if (state.holdout === true) {
+        // REASONING COMPLETE with holdout — transition to holdout phase
+        state.loop = "holdout";
+        writeState(state);
+        log("");
+        log("================================================");
+        log("  Reasoning loop complete! Running holdout validation...");
+        log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
+        log("================================================");
+
+        blockStop(
+          `Reasoning concluded with --holdout enabled. Run the holdout protocol from commands/dialectic.md: serialize the trace, spawn the holdout subagent, extract the verdict, and update state.json.`
+        );
+      } else {
+        // REASONING COMPLETE — exit cleanly, user invokes distillation separately
+        state.loop = "awaiting_distillation";
+        writeState(state);
+        log("");
+        log("================================================");
+        log("  Reasoning loop complete!");
+        log(`  R: ${R} | E: ${E} | C: ${C} | Iterations: ${iteration}`);
+        log("");
+        log("  Run /dialectic:dialectic-distill to produce");
+        log("  the conviction memo.");
+        log("  Run /dialectic:forge to produce build spec.");
+        log("================================================");
+        process.exit(0);
+      }
     }
   }
 
   // Check for elevation — reframe thesis entirely
   if (decision === "elevate") {
-    // Evidence gate: ELEVATE requires E >= 0.4 (CRITIQUE.md rule)
-    if (E < 0.4) {
+    const elevateTrigger = (state.elevate_trigger || "original").toLowerCase();
+    // Evidence gate: only the "original" trigger requires E >= 0.4
+    // Eager triggers (lakatosian, adversarial, chamberlin) have their own logic
+    if (elevateTrigger === "original" && E < 0.4) {
       log("");
       log("================================================");
       log("  ELEVATE blocked — evidence gate failed");
@@ -177,6 +223,13 @@ if (loop === "reasoning") {
       writeState(state);
       // Fall through to continue block
     } else {
+      // Wait barrier: wait for active explorations before elevating
+      if (waitForExplorations(state)) {
+        blockStop(
+          `Background exploration(s) completed while elevating. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the ELEVATE decision. The exploration results may inform the elevated thesis.`
+        );
+      }
+
       const newIteration = iteration + 1;
       state.iteration = newIteration;
       state.phase = "expansion";
@@ -187,7 +240,11 @@ if (loop === "reasoning") {
       log("================================================");
       log("  ELEVATE — thesis needs fundamental reframe");
       log(`  Iteration ${newIteration} / ${maxIterations}`);
-      log(`  Evidence gate passed: E=${E} >= 0.4`);
+      if (elevateTrigger === "original") {
+        log(`  Evidence gate passed: E=${E} >= 0.4`);
+      } else {
+        log(`  Eager trigger: ${elevateTrigger} (evidence gate bypassed)`);
+      }
       log("================================================");
 
       blockStop(
@@ -198,6 +255,13 @@ if (loop === "reasoning") {
 
   // Check iteration limit — reasoning complete, user invokes distillation separately
   if (iteration >= maxIterations) {
+    // Wait barrier: wait for active explorations before forced conclusion
+    if (waitForExplorations(state)) {
+      blockStop(
+        `Background exploration(s) completed at max iterations. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before concluding. Update convergence in state.json.`
+      );
+    }
+
     let escapeNote = "";
     if (E < 0.5) escapeNote += ` E=${E} (low evidence saturation).`;
     if (C < 0.5) escapeNote += ` C=${C} (low domain determinacy).`;
