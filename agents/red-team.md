@@ -73,7 +73,9 @@ Mark all findings with `[RED_TEAM]`:
 [RED_TEAM] Severity: SURVIVED | CHALLENGED | BROKEN
 ```
 
-Write results to `.claude/dialectic/red_team_report.md`.
+When invoked as a standalone agent: write results to `.claude/dialectic/red_team_report.md`.
+
+When running inline as part of the adversarial pass: append results to `.claude/dialectic/scratchpad.md` under the `## Adversarial Pass` header and update `state.json` adversarial fields.
 
 ## Rules
 

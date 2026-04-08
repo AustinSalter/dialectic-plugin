@@ -16,7 +16,7 @@ Check if `.claude/dialectic/state.json` exists:
 ### Argument Parsing
 
 Parse `$ARGUMENTS` for optional flags before the thesis text:
-- `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 2)
+- `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 3)
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
 - `--holdout` — Enable holdout validation after reasoning concludes
 - `--interactive=<mode>` — Enable human intervention pauses (default: off). Modes:

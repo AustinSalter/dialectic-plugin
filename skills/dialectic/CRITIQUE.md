@@ -148,10 +148,12 @@ If `should_it_have: yes` for any counter → the thesis needs ELEVATE, not CONCL
 
 ## Evidence Gate for ELEVATE
 
-ELEVATE requires **E ≥ 0.4**. If the altitude appears wrong but E < 0.4, the critique doesn't have enough evidence to know what the right altitude *is*. Elevating on thin evidence produces a guess, not a grounded reframe.
+The "Original" ELEVATE trigger (altitude wrong or amputated counters) requires **E ≥ 0.4**. If the altitude appears wrong but E < 0.4, the critique doesn't have enough evidence to know what the right altitude *is*. Elevating on thin evidence produces a guess, not a grounded reframe.
 
 - E < 0.4 AND altitude suspect → **CONTINUE** with `altitude_suspect: true` and `data_needed` explaining what evidence would clarify the right altitude
 - E ≥ 0.4 AND altitude wrong → **ELEVATE** with full preservation gate
+
+**Note:** The Lakatosian, Adversarial, and Chamberlin eager ELEVATE triggers (see Decision section) do NOT require E ≥ 0.4 — they have their own triggering logic. The evidence gate applies only to the Original trigger.
 
 ## Decision
 
@@ -283,4 +285,4 @@ if_elevate:
 
 ## CRITICAL: Stop After Writing Decision
 
-After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), programme_status, and alternate_frame, and appending to `thesis-history.md`, **stop responding immediately**. Do not write anything else. Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. Your response ends here — the stop hook reads `state.json` and handles what comes next.
+After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), programme_status, alternate_frame, and convergence (if a convergence check was performed), and appending to `thesis-history.md`, **stop responding immediately**. Do not write anything else. Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. Your response ends here — the stop hook reads `state.json` and handles what comes next.

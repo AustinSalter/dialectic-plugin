@@ -1,6 +1,6 @@
 ---
 name: dialectic
-description: Multi-pass strategic reasoning with expansion, compression, and critique cycles. Analyzes complex strategic questions through iterative exploration and structured synthesis. Use when facing ambiguous problems requiring deep analysis, thesis validation, or confidence-calibrated recommendations.
+description: Multi-pass strategic reasoning with expansion, adversarial, compression, and critique cycles. Analyzes complex strategic questions through iterative exploration and structured synthesis. Use when facing ambiguous problems requiring deep analysis, thesis validation, or confidence-calibrated recommendations.
 ---
 
 # N-Pass Strategic Reasoning
@@ -138,8 +138,9 @@ Analysis terminates when any of:
 For a new strategic question:
 
 1. Run **Expansion** pass with the question and empty working memory
-2. Run **Compression** pass on the expansion output
-3. Run **Critique** pass to decide: CONTINUE, CONCLUDE, or PIVOT
-4. If CONTINUE: loop back to step 1 with updated working memory
-5. If CONCLUDE: run **Synthesis** pass
-6. If PIVOT: revise thesis and loop back to step 1
+2. Run **Adversarial** pass on the expansion output (red team search + inversion)
+3. Run **Compression** pass to synthesize with severity ratings
+4. Run **Critique** pass to decide: CONTINUE, CONCLUDE, or ELEVATE
+5. If CONTINUE: loop back to step 1 with updated working memory
+6. If CONCLUDE: run **Synthesis** pass
+7. If ELEVATE: revise thesis and loop back to step 1
