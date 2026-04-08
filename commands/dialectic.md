@@ -50,6 +50,21 @@ Create the directory `.claude/dialectic/` and write `state.json`:
     "supporting": [],
     "challenging": []
   },
+  "programme_status": {
+    "current": "PROGRESSIVE",
+    "consecutive_degenerating": 0,
+    "history": []
+  },
+  "adversarial": {
+    "red_team_results": [],
+    "inversion_viable": false,
+    "severity_ratings": {}
+  },
+  "explorations": {
+    "active": [],
+    "completed": [],
+    "results_dir": ".claude/dialectic/explorations/"
+  },
   "decision": null,
   "holdout": false,
   "holdout_state": {
@@ -73,19 +88,33 @@ Run the full expansion protocol in `skills/dialectic/EXPANSION.md`. Do not skip 
 
 Append all expansion output to `.claude/dialectic/scratchpad.md`.
 
-## Step 3: COMPRESSION Pass (Antithesis)
+## Step 3: ADVERSARIAL Pass (Red Team)
+
+Run the full adversarial protocol in `skills/dialectic/ADVERSARIAL.md`.
+
+Append all adversarial output to `.claude/dialectic/scratchpad.md` under a `## Adversarial Pass` header.
+
+Update `state.json`:
+- Write red team search results to `adversarial.red_team_results`
+- Write inversion result to `adversarial.inversion_viable`
+- Write severity ratings to `adversarial.severity_ratings`
+- If a competing programme was detected, note it in `adversarial` (background exploration handled in Phase 2)
+
+## Step 4: COMPRESSION Pass (Antithesis)
 
 Run the full compression protocol in `skills/dialectic/COMPRESSION.md`. Use the 3D confidence model — do not default to scalar.
 
 Add previous confidence to `thesis.confidence_history` before updating state.json.
 
-## Step 4: CRITIQUE Pass (Sublation)
+## Step 5: CRITIQUE Pass (Sublation)
 
 Run the full critique protocol in `skills/dialectic/CRITIQUE.md`. Do not substitute a lighter version.
 
 Write decision to state.json `decision` field (lowercase: "continue", "conclude", or "elevate").
 
-## Step 5: Update Thesis History
+Also write `programme_status` to state.json.
+
+## Step 6: Update Thesis History
 
 **Always write thesis history before checking termination.** Complete thesis history is required before concluding.
 
@@ -102,7 +131,7 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 ---
 ```
 
-## Step 6: Check Termination
+## Step 7: Check Termination
 
 **Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
 
