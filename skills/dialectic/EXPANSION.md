@@ -79,6 +79,33 @@ Gather evidence *within the selected frame*.
 | `[THREAD]` | Worth deeper investigation |
 | `[INSIGHT]` | Pattern, connection, reframe |
 
+**Surface ambiguous evidence:**
+
+When you encounter evidence that could cut either way, or that requires domain context to interpret, mark it with `[AMBIGUOUS]`:
+
+```
+[AMBIGUOUS] Ramp Labs published "Steer AI" using activation geometry. Could be: validation of approach, competitor threat, or unrelated research direction. Need domain context to interpret.
+```
+
+Do not force interpretation of ambiguous evidence. Surface it honestly — in interactive mode, the human provides interpretation.
+
+**Competing programme detection (Lakatos):**
+
+When gathering evidence, distinguish between:
+- **Counter-arguments** — challenges to the thesis's protective belt (auxiliary claims). These are normal `[COUNTER]` markers.
+- **Competing programmes** — evidence that implies a fundamentally different hard core (different causal mechanism, different frame entirely). Mark these with `[COUNTER:programme]`.
+
+The distinction: a counter-argument says "your mechanism is wrong." A competing programme says "the right mechanism is entirely different."
+
+Example:
+```
+[COUNTER] Stripe's API documentation could be replicated by competitors.
+# This challenges the protective belt (docs as moat) — normal counter.
+
+[COUNTER:programme] Payment processing is commoditizing; the real value is in financial data aggregation, not infrastructure lock-in.
+# This implies a different hard core entirely — competing programme.
+```
+
 **Web research (use actively, not passively):**
 
 You have `WebSearch` and `WebFetch` available. Use them. Do not rely solely on training data for empirical claims.
