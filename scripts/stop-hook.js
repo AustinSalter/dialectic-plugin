@@ -234,22 +234,70 @@ if (loop === "reasoning") {
     }
   }
 
-  // Continue reasoning loop — increment iteration and re-feed
-  const newIteration = iteration + 1;
-  state.iteration = newIteration;
-  writeState(state);
+  // Continue reasoning loop — check phase for correct transition
+  const phase = state.phase || "expansion";
 
-  log("");
-  log("================================================");
-  log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
-  log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
-  log(`  Thesis: ${thesis}...`);
-  log(`  Decision: ${decision} -> continuing`);
-  log("================================================");
+  if (phase === "expansion") {
+    // Expansion done → transition to adversarial
+    state.phase = "adversarial";
+    writeState(state);
 
-  blockStop(
-    `Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration ${newIteration}.`
-  );
+    log("");
+    log("================================================");
+    log("  Expansion complete — running adversarial pass");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
+    log("================================================");
+    blockStop(
+      `Run the adversarial pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/ADVERSARIAL.md. Identify load-bearing claims, run red team searches, attempt lightweight inversion, detect competing programmes.`
+    );
+
+  } else if (phase === "adversarial") {
+    // Adversarial done → transition to compression
+    state.phase = "compression";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Adversarial pass complete — running compression");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log("================================================");
+    blockStop(
+      `Run the compression pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/COMPRESSION.md. Integrate adversarial findings and severity ratings.`
+    );
+
+  } else if (phase === "compression") {
+    // Compression done → transition to critique
+    state.phase = "critique";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Compression complete — running critique");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log("================================================");
+    blockStop(
+      `Run the critique pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/CRITIQUE.md. Include programme assessment and alternate frame probe (if consecutive_degenerating >= 1).`
+    );
+
+  } else {
+    // Critique done (or unknown phase) — increment iteration, reset to expansion
+    const newIteration = iteration + 1;
+    state.iteration = newIteration;
+    state.phase = "expansion";
+    state.decision = null;
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
+    log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
+    log(`  Thesis: ${thesis}...`);
+    log("================================================");
+    blockStop(
+      `Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration ${newIteration}.`
+    );
+  }
 
 // ============================================================
 // DISTILLATION LOOP
