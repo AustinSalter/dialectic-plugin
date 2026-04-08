@@ -77,6 +77,34 @@ alternate_frame:
 
 **If viable**: this is a candidate for background exploration (Phase 2). In Phase 1, note it for the human. It does NOT trigger FORK — the main loop continues on the current thesis.
 
+## Convergence Check (when explorations available)
+
+When background thesis-explorer subagents have completed and their results are in `.claude/dialectic/explorations/`, AND the current programme is DEGENERATING or STAGNANT, perform a convergence check.
+
+**Process:**
+1. Read all files in `.claude/dialectic/explorations/`
+2. Compare each exploration's Lakatosian assessment against the current thesis
+3. Assess: is any exploration progressive where the current programme is degenerating?
+
+```yaml
+convergence:
+  explorations_available: true/false
+  explorations:
+    - thesis: "..."
+      progressive: true/false
+      novel_predictions: ["..."]
+  recommendation: "switch" | "continue" | "human_choice_required"
+```
+
+**Recommendation logic:**
+- `switch`: An exploration is clearly progressive AND current programme has `consecutive_degenerating >= 2`
+- `continue`: No exploration is more progressive than the current programme
+- `human_choice_required`: An exploration is progressive AND current programme is degenerating, but the choice is ambiguous — in interactive mode, this triggers the CHOOSE pause
+
+If `recommendation: "switch"` and NOT in interactive mode: the critique should issue ELEVATE with the exploration's thesis as the elevated thesis.
+
+If `recommendation: "human_choice_required"` and in interactive mode (`--interactive=steering` or `--interactive=full`): the stop hook will pause for human input.
+
 ## Fact-Check with Web Search
 
 Use `WebSearch` to verify or challenge key claims from the expansion pass. Budget 2-3 searches per critique.
