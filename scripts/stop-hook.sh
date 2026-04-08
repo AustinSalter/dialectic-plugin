@@ -17,6 +17,15 @@ if [ ! -f "$STATE_FILE" ]; then
   exit 0  # No active loop, allow exit
 fi
 
+# Staleness guard: if state.json hasn't been modified in 2 hours,
+# the session is orphaned (e.g. terminal closed mid-session).
+# Allow the stop so the hook doesn't block every future conversation.
+STALE_THRESHOLD_MIN=120
+if [ "$(find "$STATE_FILE" -mmin +${STALE_THRESHOLD_MIN} 2>/dev/null)" ]; then
+  echo "Dialectic state.json is stale (>${STALE_THRESHOLD_MIN} min). Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume." >&2
+  exit 0
+fi
+
 # Read state
 DECISION=$(jq -r '.decision // ""' "$STATE_FILE" 2>/dev/null)
 ITERATION=$(jq -r '.iteration // 0' "$STATE_FILE" 2>/dev/null)

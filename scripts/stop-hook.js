@@ -32,6 +32,19 @@ if (!fs.existsSync(STATE_FILE)) {
   process.exit(0);
 }
 
+// Staleness guard: if state.json hasn't been modified in 2 hours,
+// the session is orphaned (e.g. terminal closed mid-session).
+// Allow the stop so the hook doesn't block every future conversation.
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+const stateAge = Date.now() - fs.statSync(STATE_FILE).mtimeMs;
+if (stateAge > STALE_THRESHOLD_MS) {
+  process.stderr.write(
+    `Dialectic state.json is stale (${Math.round(stateAge / 60000)} min old). ` +
+    `Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume.\n`
+  );
+  process.exit(0);
+}
+
 // Read state
 let state;
 try {
