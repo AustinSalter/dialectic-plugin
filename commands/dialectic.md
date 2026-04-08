@@ -100,6 +100,22 @@ Update `state.json`:
 - Write severity ratings to `adversarial.severity_ratings`
 - If a competing programme was detected, note it in `adversarial` (background exploration handled in Phase 2)
 
+### Background Exploration (when competing programme detected)
+
+If the adversarial pass set `competing_programme.detected: true` in state.json:
+
+1. Create `.claude/dialectic/explorations/` directory if it doesn't exist
+2. Record the competing thesis in `explorations.active` in state.json
+3. Spawn a thesis-explorer subagent in the **background** via Bash:
+   ```
+   claude --print -p "You are a thesis-explorer. Read .claude/dialectic/scratchpad.md for the evidence corpus. The original thesis is: '[current thesis]'. Explore this competing thesis: '[competing thesis]'. Follow the protocol in agents/thesis-explorer.md. Write your findings to .claude/dialectic/explorations/[thesis-slug].md" &
+   ```
+4. **Continue immediately** — do not wait for the subagent to finish
+5. The main loop proceeds to compression without interruption
+6. When the subagent finishes, its results appear in `explorations/` and the critique's convergence check will pick them up
+
+Similarly, if the critique's alternate frame probe detects a viable frame: spawn another thesis-explorer for the alternate frame.
+
 ## Step 4: COMPRESSION Pass (Antithesis)
 
 Run the full compression protocol in `skills/dialectic/COMPRESSION.md`. Use the 3D confidence model — do not default to scalar.
