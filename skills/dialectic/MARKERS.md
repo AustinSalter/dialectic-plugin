@@ -16,6 +16,9 @@ Use these markers to structure reasoning output. Markers enable extraction and t
 | `[RED_TEAM]` | Adversarial finding | Counter-evidence from targeted disconfirming search (with severity: SURVIVED/CHALLENGED/BROKEN) |
 | `[AMBIGUOUS]` | Ambiguous evidence | Evidence the loop found but cannot interpret without domain context |
 | `[COUNTER:programme]` | Competing programme | Counter-evidence implying a fundamentally different hard core, not just a challenge to the protective belt |
+| `[INTERPRET:human]` | Human interpretation | Domain interpretation of ambiguous evidence provided by human |
+| `[WEIGHT:human]` | Human weight adjustment | Evidence re-weighting provided by human ("bigger deal", "these chain") |
+| `[CHOOSE:human]` | Human programme choice | Human's strategic decision at convergence point |
 
 ## Usage Examples
 
@@ -55,3 +58,4 @@ When compressing marked content:
 5. `[RED_TEAM]` markers carry severity ratings — `SURVIVED` claims get higher confidence, `CHALLENGED` claims need integration, `BROKEN` claims require thesis repair
 6. `[AMBIGUOUS]` markers carry forward until resolved by human interpretation (`[INTERPRET:human]`) or by subsequent evidence
 7. `[COUNTER:programme]` markers signal competing programmes — these are not resolved by patching the protective belt
+8. Human-tagged markers (`[INTERPRET:human]`, `[WEIGHT:human]`, `[CHOOSE:human]`) override mechanical assessments — human domain knowledge takes precedence
