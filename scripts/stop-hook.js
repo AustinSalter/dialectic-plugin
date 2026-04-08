@@ -234,22 +234,175 @@ if (loop === "reasoning") {
     }
   }
 
-  // Continue reasoning loop — increment iteration and re-feed
-  const newIteration = iteration + 1;
-  state.iteration = newIteration;
-  writeState(state);
+  // Continue reasoning loop — check phase for correct transition
+  const phase = state.phase || "expansion";
+  const interactiveMode = (state.interactive && state.interactive.mode) || "";
 
-  log("");
-  log("================================================");
-  log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
-  log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
-  log(`  Thesis: ${thesis}...`);
-  log(`  Decision: ${decision} -> continuing`);
-  log("================================================");
+  if (phase === "expansion") {
+    // Expansion done → check for interpret pause or transition to adversarial
+    if ((interactiveMode === "interpret" || interactiveMode === "full")) {
+      const scratchpad = fs.existsSync(path.join(STATE_DIR, "scratchpad.md"))
+        ? fs.readFileSync(path.join(STATE_DIR, "scratchpad.md"), "utf8")
+        : "";
+      const ambiguousCount = (scratchpad.match(/\[AMBIGUOUS\]/g) || []).length;
+      if (ambiguousCount > 0) {
+        state.phase = "interpret_pause";
+        writeState(state);
 
-  blockStop(
-    `Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration ${newIteration}.`
-  );
+        log("");
+        log("================================================");
+        log("  Expansion complete — INTERPRET pause");
+        log(`  ${ambiguousCount} [AMBIGUOUS] item(s) found in scratchpad`);
+        log(`  Iteration ${iteration} / ${maxIterations}`);
+        log("================================================");
+        blockStop(
+          `INTERPRET PAUSE: The expansion pass found ${ambiguousCount} ambiguous item(s). Display them to the user and ask how to interpret each [AMBIGUOUS] item in .claude/dialectic/scratchpad.md. After the user responds, update the scratchpad with their interpretations and continue.`
+        );
+      }
+    }
+
+    // No interpret pause needed — transition to adversarial
+    state.phase = "adversarial";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Expansion complete — running adversarial pass");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
+    log("================================================");
+    blockStop(
+      `Run the adversarial pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/ADVERSARIAL.md. Identify load-bearing claims, run red team searches, attempt lightweight inversion, detect competing programmes.`
+    );
+
+  } else if (phase === "interpret_pause") {
+    // Interpret pause done → transition to adversarial
+    state.phase = "adversarial";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Interpret pause resolved — running adversarial pass");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
+    log("================================================");
+    blockStop(
+      `Run the adversarial pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/ADVERSARIAL.md. Identify load-bearing claims, run red team searches, attempt lightweight inversion, detect competing programmes.`
+    );
+
+  } else if (phase === "adversarial") {
+    // Adversarial done → check for weight pause or transition to compression
+    if (interactiveMode === "weight" || interactiveMode === "full") {
+      state.phase = "weight_pause";
+      writeState(state);
+
+      log("");
+      log("================================================");
+      log("  Adversarial pass complete — WEIGHT pause");
+      log(`  Iteration ${iteration} / ${maxIterations}`);
+      log("================================================");
+      blockStop(
+        `WEIGHT PAUSE: The adversarial pass is complete. Display the adversarial findings and severity ratings to the user. Ask the user to confirm or adjust the weights before compression. After the user responds, update the scratchpad and continue.`
+      );
+    }
+
+    // No weight pause needed — transition to compression
+    state.phase = "compression";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Adversarial pass complete — running compression");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log("================================================");
+    blockStop(
+      `Run the compression pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/COMPRESSION.md. Integrate adversarial findings and severity ratings.`
+    );
+
+  } else if (phase === "weight_pause") {
+    // Weight pause done → transition to compression
+    state.phase = "compression";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Weight pause resolved — running compression");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log("================================================");
+    blockStop(
+      `Run the compression pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/COMPRESSION.md. Integrate adversarial findings and severity ratings.`
+    );
+
+  } else if (phase === "compression") {
+    // Compression done → transition to critique
+    state.phase = "critique";
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log("  Compression complete — running critique");
+    log(`  Iteration ${iteration} / ${maxIterations}`);
+    log("================================================");
+    blockStop(
+      `Run the critique pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/CRITIQUE.md. Include programme assessment and alternate frame probe (if consecutive_degenerating >= 1).`
+    );
+
+  } else if (phase === "choose_pause") {
+    // Choose pause done → increment iteration, reset to expansion
+    const newIteration = iteration + 1;
+    state.iteration = newIteration;
+    state.phase = "expansion";
+    state.decision = null;
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log(`  Choose pause resolved — starting iteration ${newIteration}`);
+    log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
+    log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
+    log(`  Thesis: ${thesis}...`);
+    log("================================================");
+    blockStop(
+      `Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration ${newIteration}.`
+    );
+
+  } else {
+    // Critique done (or unknown phase) — check for choose pause or increment iteration
+    if (interactiveMode === "steering" || interactiveMode === "full") {
+      const convergenceRec = (state.convergence && state.convergence.recommendation) || "";
+      if (convergenceRec === "human_choice_required") {
+        state.phase = "choose_pause";
+        writeState(state);
+
+        log("");
+        log("================================================");
+        log("  Critique complete — CHOOSE pause");
+        log("  Convergence recommends human choice");
+        log(`  Iteration ${iteration} / ${maxIterations}`);
+        log("================================================");
+        blockStop(
+          `CHOOSE PAUSE: The critique pass determined that human choice is required (convergence.recommendation = "human_choice_required"). Display the competing options to the user and ask them to choose a direction before the next iteration begins.`
+        );
+      }
+    }
+
+    // No choose pause needed — increment iteration, reset to expansion
+    const newIteration = iteration + 1;
+    state.iteration = newIteration;
+    state.phase = "expansion";
+    state.decision = null;
+    writeState(state);
+
+    log("");
+    log("================================================");
+    log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
+    log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
+    log(`  Thesis: ${thesis}...`);
+    log("================================================");
+    blockStop(
+      `Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration ${newIteration}.`
+    );
+  }
 
 // ============================================================
 // DISTILLATION LOOP

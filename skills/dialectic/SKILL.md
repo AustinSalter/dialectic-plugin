@@ -1,6 +1,6 @@
 ---
 name: dialectic
-description: Multi-pass strategic reasoning with expansion, compression, and critique cycles. Analyzes complex strategic questions through iterative exploration and structured synthesis. Use when facing ambiguous problems requiring deep analysis, thesis validation, or confidence-calibrated recommendations.
+description: Multi-pass strategic reasoning with expansion, adversarial, compression, and critique cycles. Analyzes complex strategic questions through iterative exploration and structured synthesis. Use when facing ambiguous problems requiring deep analysis, thesis validation, or confidence-calibrated recommendations.
 ---
 
 # N-Pass Strategic Reasoning
@@ -10,16 +10,22 @@ Iterative reasoning architecture that separates divergent exploration from conve
 ## Architecture Overview
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  EXPANSION  │────▶│ COMPRESSION │────▶│   CRITIQUE  │
-│  (diverge)  │     │  (converge) │     │  (decide)   │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-      ▲                                        │
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  EXPANSION  │────▶│ ADVERSARIAL │────▶│ COMPRESSION │────▶│   CRITIQUE  │
+│  (diverge)  │     │ (red team)  │     │  (converge) │     │  (decide)   │
+└─────────────┘     └─────────────┘     └─────────────┘     └──────┬──────┘
+      ▲                    │                                       │
+      │                    │ competing                             │
+      │                    │ programme?                            │
+      │                    ▼                                       │
+      │             [background                                   │
+      │              explorer]                                    │
+      │                                                           │
       │              ┌─────────────────────────┼─────────────────────────┐
       │              │                         │                         │
       │              ▼                         ▼                         ▼
       └────── [CONTINUE]                 [CONCLUDE]                 [ELEVATE]
-              loop back                        │                  revise thesis
+              loop back                        │                  reframe thesis
                                                │
                                         ┌──────┴──────┐
                                         │  HOLDOUT    │ (if --holdout)
@@ -53,9 +59,10 @@ Iterative reasoning architecture that separates divergent exploration from conve
 
 | Pass | When to Use | Output |
 |------|-------------|--------|
-| **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, etc. |
-| **Compression** | After expansion, to synthesize findings | Structured state (insights, tensions, threads, confidence) |
-| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/PIVOT) with reasoning |
+| **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, `[AMBIGUOUS]`, etc. |
+| **Adversarial** | After expansion, before compression | Red team findings with `[RED_TEAM]`, severity ratings, lightweight inversion, competing programme detection |
+| **Compression** | After adversarial, to synthesize findings | Structured state with severity-rated evidence |
+| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE) with programme assessment |
 | **Synthesis** | When concluding, to produce final output | Final thesis with confidence and key evidence |
 | **Escape Hatch** | Max iterations reached with low confidence | Honest assessment of blockers and limitations |
 
@@ -81,6 +88,7 @@ Passes receive working memory as context. Standard format:
 ## Pass Instructions
 
 **Expansion**: See [EXPANSION.md](EXPANSION.md)
+**Adversarial**: See [ADVERSARIAL.md](ADVERSARIAL.md) — red team search (Popperian severity), lightweight inversion (Hegelian determinate negation), competing programme detection (Lakatos)
 **Compression**: See [COMPRESSION.md](COMPRESSION.md)
 **Critique**: See [CRITIQUE.md](CRITIQUE.md) — includes 6 questioning techniques, problem-type routing, 3D confidence
 **Synthesis**: See [SYNTHESIS.md](SYNTHESIS.md)
@@ -130,8 +138,9 @@ Analysis terminates when any of:
 For a new strategic question:
 
 1. Run **Expansion** pass with the question and empty working memory
-2. Run **Compression** pass on the expansion output
-3. Run **Critique** pass to decide: CONTINUE, CONCLUDE, or PIVOT
-4. If CONTINUE: loop back to step 1 with updated working memory
-5. If CONCLUDE: run **Synthesis** pass
-6. If PIVOT: revise thesis and loop back to step 1
+2. Run **Adversarial** pass on the expansion output (red team search + inversion)
+3. Run **Compression** pass to synthesize with severity ratings
+4. Run **Critique** pass to decide: CONTINUE, CONCLUDE, or ELEVATE
+5. If CONTINUE: loop back to step 1 with updated working memory
+6. If CONCLUDE: run **Synthesis** pass
+7. If ELEVATE: revise thesis and loop back to step 1
