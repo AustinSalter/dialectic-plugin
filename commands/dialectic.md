@@ -19,6 +19,11 @@ Parse `$ARGUMENTS` for optional flags before the thesis text:
 - `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 2)
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
 - `--holdout` — Enable holdout validation after reasoning concludes
+- `--interactive=<mode>` — Enable human intervention pauses (default: off). Modes:
+  - `interpret` — Pause after expansion for human interpretation of `[AMBIGUOUS]` evidence
+  - `weight` — Pause after adversarial for human re-weighting of evidence
+  - `steering` — Pause at convergence for human programme selection
+  - `full` — All three pauses enabled
 
 Extract the thesis/question text (everything that isn't a flag). Examples:
 - `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5, holdout=false
@@ -65,6 +70,12 @@ Create the directory `.claude/dialectic/` and write `state.json`:
     "completed": [],
     "results_dir": ".claude/dialectic/explorations/"
   },
+  "interactive": {
+    "mode": null,
+    "interpret_inputs": [],
+    "weight_adjustments": [],
+    "choose_decisions": []
+  },
   "decision": null,
   "holdout": false,
   "holdout_state": {
@@ -80,6 +91,8 @@ Create the directory `.claude/dialectic/` and write `state.json`:
 
 Set `holdout: true` in state.json if `--holdout` flag is present.
 
+Set `interactive.mode` from the parsed `--interactive` flag.
+
 Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
 
 ## Step 2: EXPANSION Pass (Thesis)
@@ -87,6 +100,28 @@ Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
 Run the full expansion protocol in `skills/dialectic/EXPANSION.md`. Do not skip frame selection.
 
 Append all expansion output to `.claude/dialectic/scratchpad.md`.
+
+### INTERPRET Pause (when --interactive=interpret or --interactive=full)
+
+If interactive mode includes interpret AND the expansion surfaced `[AMBIGUOUS]` items:
+
+1. Display the INTERPRET pause prompt:
+   ```
+   ──────────────────────────────────────
+   INTERPRET PAUSE — Iteration N
+
+   These items came up but I'm not sure what to make of them:
+
+   1. [AMBIGUOUS] [item description]
+   2. [AMBIGUOUS] [item description]
+
+   Your read?
+   ──────────────────────────────────────
+   ```
+2. Wait for human input
+3. Tag each human interpretation with `[INTERPRET:human]` and append to scratchpad.md
+4. Record in `interactive.interpret_inputs` in state.json
+5. Continue to adversarial pass
 
 ## Step 3: ADVERSARIAL Pass (Red Team)
 
@@ -99,6 +134,32 @@ Update `state.json`:
 - Write inversion result to `adversarial.inversion_viable`
 - Write severity ratings to `adversarial.severity_ratings`
 - If a competing programme was detected, note it in `adversarial` (background exploration handled in Phase 2)
+
+### WEIGHT Pause (when --interactive=weight or --interactive=full)
+
+If interactive mode includes weight:
+
+1. Display the WEIGHT pause prompt with full evidence corpus and severity ratings:
+   ```
+   ──────────────────────────────────────
+   WEIGHT PAUSE — Iteration N
+
+   Supporting (with severity):
+     1. [EVIDENCE:web] ... — SURVIVED
+     2. [EVIDENCE:prior] ... — UNTESTED
+
+   Challenging:
+     3. [RED_TEAM] ... — CHALLENGED claim #2
+     4. [COUNTER] ...
+
+   Any evidence over/underweighted?
+   Anything chaining together that looks separate?
+   ──────────────────────────────────────
+   ```
+2. Wait for human input
+3. Tag each weight adjustment with `[WEIGHT:human]` and append to scratchpad.md
+4. Record in `interactive.weight_adjustments` in state.json
+5. Continue to compression pass
 
 ### Background Exploration (when competing programme detected)
 
@@ -129,6 +190,31 @@ Run the full critique protocol in `skills/dialectic/CRITIQUE.md`. Do not substit
 Write decision to state.json `decision` field (lowercase: "continue", "conclude", or "elevate").
 
 Also write `programme_status` to state.json.
+
+### CHOOSE Pause (when --interactive=steering or --interactive=full)
+
+If interactive mode includes steering AND the critique's convergence check returned `recommendation: "human_choice_required"`:
+
+1. Display the CHOOSE pause prompt:
+   ```
+   ──────────────────────────────────────
+   CHOOSE PAUSE — Iteration N
+
+   Current: [thesis summary]
+   Status: DEGENERATING (N consecutive)
+
+   Exploration found:
+     Thesis α: [summary]
+     Progressive indicators: [what it predicts the current thesis can't]
+
+   (a) Switch to thesis α
+   (b) Keep going — I see something you don't
+   ──────────────────────────────────────
+   ```
+2. Wait for human input
+3. Tag with `[CHOOSE:human]` and record in `interactive.choose_decisions` in state.json
+4. If switch: issue ELEVATE with the chosen thesis
+5. If keep going: override and CONTINUE with `[CHOOSE:human] override — human says keep going` noted
 
 ## Step 6: Update Thesis History
 
