@@ -34,6 +34,9 @@ HOLDOUT_MAX_PASSES=$(jq -r '.holdout_state.max_passes // 2' "$STATE_FILE" 2>/dev
 FORGE_ITER=$(jq -r '.forge_iteration // 1' "$STATE_FILE" 2>/dev/null)
 FORGE_MAX=$(jq -r '.forge_max // 4' "$STATE_FILE" 2>/dev/null)
 FORGE_MIN=$(jq -r '.forge_min // 2' "$STATE_FILE" 2>/dev/null)
+PHASE=$(jq -r '.phase // "expansion"' "$STATE_FILE" 2>/dev/null)
+PROGRAMME_STATUS=$(jq -r '.programme_status.current // "PROGRESSIVE"' "$STATE_FILE" 2>/dev/null)
+CONSECUTIVE_DEGENERATING=$(jq -r '.programme_status.consecutive_degenerating // 0' "$STATE_FILE" 2>/dev/null)
 
 # 3D Confidence: R (defensibility), E (evidence saturation), C (domain determinacy)
 CONF_TYPE=$(jq -r '.thesis.confidence | type' "$STATE_FILE" 2>/dev/null)
@@ -242,21 +245,64 @@ if [ "$LOOP" = "reasoning" ]; then
     fi
   fi
 
-  # Continue reasoning loop — increment iteration and re-feed
-  NEW_ITERATION=$((ITERATION + 1))
-  jq ".iteration = $NEW_ITERATION" "$STATE_FILE" > "$STATE_FILE.tmp"
-  mv "$STATE_FILE.tmp" "$STATE_FILE"
+  # Continue reasoning loop — check phase for correct transition
+  PHASE=$(jq -r '.phase // "expansion"' "$STATE_FILE" 2>/dev/null)
 
-  echo ""
-  echo "================================================"
-  echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS (floor: $MIN_ITERATIONS)"
-  echo "  Confidence — R: $R | E: $E | C: $C"
-  echo "  Thesis: ${THESIS}..."
-  echo "  Decision: $DECISION -> continuing"
-  echo "================================================"
-  echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
+  if [ "$PHASE" = "expansion" ]; then
+    # Expansion done → transition to adversarial
+    jq '.phase = "adversarial"' "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-  exit 2  # Block stop, continue loop
+    echo ""
+    echo "================================================"
+    echo "  Expansion complete — running adversarial pass"
+    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
+    echo "  Confidence — R: $R | E: $E | C: $C"
+    echo "================================================"
+    echo "Run the adversarial pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/ADVERSARIAL.md. Identify load-bearing claims, run red team searches, attempt lightweight inversion, detect competing programmes." >&2
+    exit 2
+
+  elif [ "$PHASE" = "adversarial" ]; then
+    # Adversarial done → transition to compression
+    jq '.phase = "compression"' "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+    echo ""
+    echo "================================================"
+    echo "  Adversarial pass complete — running compression"
+    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
+    echo "================================================"
+    echo "Run the compression pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/COMPRESSION.md. Integrate adversarial findings and severity ratings." >&2
+    exit 2
+
+  elif [ "$PHASE" = "compression" ]; then
+    # Compression done → transition to critique
+    jq '.phase = "critique"' "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+    echo ""
+    echo "================================================"
+    echo "  Compression complete — running critique"
+    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
+    echo "================================================"
+    echo "Run the critique pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/CRITIQUE.md. Include programme assessment and alternate frame probe (if consecutive_degenerating >= 1)." >&2
+    exit 2
+
+  else
+    # Critique done (or unknown phase) — increment iteration, reset to expansion
+    NEW_ITERATION=$((ITERATION + 1))
+    jq ".iteration = $NEW_ITERATION | .phase = \"expansion\" | .decision = null" "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+    echo ""
+    echo "================================================"
+    echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS (floor: $MIN_ITERATIONS)"
+    echo "  Confidence — R: $R | E: $E | C: $C"
+    echo "  Thesis: ${THESIS}..."
+    echo "================================================"
+    echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
+    exit 2
+  fi
 
 # ============================================================
 # DISTILLATION LOOP
