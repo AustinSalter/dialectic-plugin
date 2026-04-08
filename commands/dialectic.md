@@ -9,7 +9,7 @@ You are executing a multi-pass dialectic reasoning cycle. Follow this protocol e
 
 ## Step 1: Initialize or Resume
 
-Check if `.claude/dialectic/state.json` exists:
+Test whether `.claude/dialectic/state.json` exists on disk:
 - If NO: Initialize new session (see Initial State below)
 - If YES: Read state and continue from current iteration
 
@@ -26,8 +26,8 @@ Parse `$ARGUMENTS` for optional flags before the thesis text:
   - `full` — All three pauses enabled
 
 Extract the thesis/question text (everything that isn't a flag). Examples:
-- `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=2, max=5, holdout=false
-- `/dialectic:dialectic --holdout "Where should VCs deploy capital in AI?"` → min=2, max=5, holdout=true
+- `/dialectic:dialectic "Where should VCs deploy capital in AI?"` → min=3, max=5, holdout=false
+- `/dialectic:dialectic --holdout "Where should VCs deploy capital in AI?"` → min=3, max=5, holdout=true
 - `/dialectic:dialectic --min-iterations=3 --max-iterations=7 --holdout "thesis"` → min=3, max=7, holdout=true
 
 ### Initial State (create if not exists)
@@ -93,13 +93,13 @@ Set `holdout: true` in state.json if `--holdout` flag is present.
 
 Set `interactive.mode` from the parsed `--interactive` flag.
 
-Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
+Write the original prompt to `.claude/dialectic/prompt.md`.
 
 ## Step 2: EXPANSION Pass (Thesis)
 
-Run the full expansion protocol in `skills/dialectic/EXPANSION.md`. Do not skip frame selection.
+Run the expansion protocol in `skills/dialectic/EXPANSION.md`, including its frame-selection step.
 
-Append all expansion output to `.claude/dialectic/scratchpad.md`.
+Append the complete expansion output — tagged evidence, frame labels, and reasoning — to `.claude/dialectic/scratchpad.md`.
 
 ### INTERPRET Pause (when --interactive=interpret or --interactive=full)
 
@@ -110,7 +110,7 @@ If interactive mode includes interpret AND the expansion surfaced `[AMBIGUOUS]` 
    ──────────────────────────────────────
    INTERPRET PAUSE — Iteration N
 
-   These items came up but I'm not sure what to make of them:
+   These items surfaced as ambiguous during expansion:
 
    1. [AMBIGUOUS] [item description]
    2. [AMBIGUOUS] [item description]
@@ -125,7 +125,7 @@ If interactive mode includes interpret AND the expansion surfaced `[AMBIGUOUS]` 
 
 ## Step 3: ADVERSARIAL Pass (Red Team)
 
-Run the full adversarial protocol in `skills/dialectic/ADVERSARIAL.md`.
+Run the adversarial protocol in `skills/dialectic/ADVERSARIAL.md`.
 
 Append all adversarial output to `.claude/dialectic/scratchpad.md` under a `## Adversarial Pass` header.
 
@@ -133,7 +133,7 @@ Update `state.json`:
 - Write red team search results to `adversarial.red_team_results`
 - Write inversion result to `adversarial.inversion_viable`
 - Write severity ratings to `adversarial.severity_ratings`
-- If a competing programme was detected, note it in `adversarial` (background exploration handled in Phase 2)
+- If a competing programme was detected, write it to `adversarial.competing_programme` in state.json. Background exploration runs in the next subsection.
 
 ### WEIGHT Pause (when --interactive=weight or --interactive=full)
 
@@ -167,25 +167,24 @@ If the adversarial pass set `competing_programme.detected: true` in state.json:
 
 1. Create `.claude/dialectic/explorations/` directory if it doesn't exist
 2. Record the competing thesis in `explorations.active` in state.json
-3. Spawn a thesis-explorer subagent in the **background** via Bash:
+3. Spawn a thesis-explorer subagent via Bash, backgrounded:
    ```
    claude --print -p "You are a thesis-explorer. Read .claude/dialectic/scratchpad.md for the evidence corpus. The original thesis is: '[current thesis]'. Explore this competing thesis: '[competing thesis]'. Follow the protocol in agents/thesis-explorer.md. Write your findings to .claude/dialectic/explorations/[thesis-slug].md" &
    ```
-4. **Continue immediately** — do not wait for the subagent to finish
-5. The main loop proceeds to compression without interruption
-6. When the subagent finishes, its results appear in `explorations/` and the critique's convergence check will pick them up
+4. The main loop proceeds to compression without interruption
+5. When the subagent finishes, it writes to `explorations/`. The critique pass reads all files in that directory during its convergence check.
 
-Similarly, if the critique's alternate frame probe detects a viable frame: spawn another thesis-explorer for the alternate frame.
+If the critique pass (Step 5) detects an alternate frame that survived adversarial testing, spawn a thesis-explorer for it using the same background pattern.
 
 ## Step 4: COMPRESSION Pass (Antithesis)
 
-Run the full compression protocol in `skills/dialectic/COMPRESSION.md`. Use the 3D confidence model — do not default to scalar.
+Run the compression protocol in `skills/dialectic/COMPRESSION.md`. Update confidence as three dimensions (R, E, C), not a single scalar.
 
-Add previous confidence to `thesis.confidence_history` before updating state.json.
+Before writing new confidence values to state.json, append the current `thesis.confidence` object to `thesis.confidence_history`.
 
 ## Step 5: CRITIQUE Pass (Sublation)
 
-Run the full critique protocol in `skills/dialectic/CRITIQUE.md`. Do not substitute a lighter version.
+Run the critique protocol in `skills/dialectic/CRITIQUE.md` without abbreviation.
 
 Write decision to state.json `decision` field (lowercase: "continue", "conclude", or "elevate").
 
@@ -237,34 +236,34 @@ After each iteration, append to `.claude/dialectic/thesis-history.md`:
 
 **Iteration floor**: If `iteration < min_iterations`, treat any CONCLUDE decision as CONTINUE instead. Override the decision in state.json and note: "CONCLUDE overridden — below iteration floor."
 
-After writing the thesis history entry and updating state.json, **stop responding**. Do not write anything else. The stop hook handles all transitions.
+After writing thesis history and updating state.json, **stop responding** — the stop hook owns all transitions.
 
-This applies to ALL decisions:
+This applies to every decision:
 - **CONCLUDE**: Stop. The reasoning phase is complete.
 - **CONTINUE**: Stop. The hook increments the iteration and re-feeds.
 - **ELEVATE**: Stop. The hook re-feeds with the elevation prompt.
 
-**Do not write transition headers, do not begin any next phase.** The stop hook owns transitions.
+**Do not write transition headers or begin any next phase.**
 
 ## Output Format
 
-Show your work clearly. The user should see:
+Show your work. The user should see:
 - Full expansion reasoning with markers
 - Compression synthesis and confidence update
 - Critique questioning and decision
 
-This visibility IS the value. Do not summarize or hide your reasoning.
+Output the full reasoning trace. Do not summarize or collapse intermediate steps.
 
 ## Market Structure Patterns
 
-Reference `skills/dialectic/PATTERNS.md` for common strategic patterns to consider.
+Read `skills/dialectic/PATTERNS.md` and apply any matching strategic patterns during expansion.
 
 ## Holdout Protocol (when loop transitions to "holdout")
 
-When the stop hook transitions the loop to "holdout", execute this protocol:
+When the stop hook transitions the loop to `holdout`:
 
 1. Run serialization: `node "${CLAUDE_PLUGIN_ROOT}/scripts/serialize-trace.js"`
-2. Verify `.claude/dialectic/holdout_input/` contains all three files (conviction_thesis.md, trace_summary.md, holdout_brief.md)
+2. Confirm `.claude/dialectic/holdout_input/` contains conviction_thesis.md, trace_summary.md, and holdout_brief.md. If any file is missing, re-run the serialization script and check its error output before proceeding.
 3. Update state: `holdout_state.phase: "holdout_spawned"` in state.json
 4. Spawn isolated subagent via Bash:
    ```
@@ -275,5 +274,5 @@ When the stop hook transitions the loop to "holdout", execute this protocol:
 7. Update state.json:
    - `holdout_state.verdict: "<verdict>"`
    - `holdout_state.report_path: ".claude/dialectic/holdout_report.md"`
-   - If CHALLENGED: merge adjusted confidence scores from the holdout report into `thesis.confidence`
-8. Stop responding. The stop hook handles the transition to `awaiting_distillation` or re-loop.
+   - If CHALLENGED: overwrite `thesis.confidence` with the adjusted R, E, C scores from the holdout report
+8. Stop. The stop hook transitions to `awaiting_distillation` or re-loops.

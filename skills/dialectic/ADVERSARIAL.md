@@ -42,7 +42,7 @@ For each load-bearing claim, construct a search designed to *break* it.
 - Search for "X fails because"
 - Search for critics, failed cases, structural objections
 
-Use `WebSearch` and `WebFetch`. Budget 2-3 `WebSearch` calls total — prioritize the claims most vulnerable to empirical disconfirmation.
+Use `WebSearch` and `WebFetch`. Budget 2-3 `WebSearch` calls total — prioritize claims that are empirical (testable against data or cases) over claims that are definitional or normative.
 
 Mark findings with `[RED_TEAM]` markers:
 
@@ -74,11 +74,11 @@ Construct a 2-3 sentence narrative in which the thesis is wrong.
 1. Review all `[TENSION]` and `[COUNTER]` markers from the expansion
 2. Ask: do these assemble into a coherent counter-narrative?
 3. If yes: write the narrative (2-3 sentences, using only gathered evidence)
-4. If no: note what prevents assembly — this itself is diagnostic
+4. If no: note what prevents assembly — record whether the block is evidential (missing data) or structural (tensions point in incompatible directions)
 
 **Viable inversion** = competing programme candidate → flag for Job 3.
 
-**Failed inversion** = strengthens thesis (the thesis's tensions cannot be assembled against it).
+**Failed inversion** = the thesis's tensions do not assemble into a coherent counter-narrative. Note this as a non-result, not as confirmation.
 
 ## Job 3: Competing Programme Detection (Lakatos)
 
@@ -93,7 +93,7 @@ Scan the expansion evidence for signals that a *different* hard core is present 
 
 **Detection test:** Does this evidence challenge *a claim the thesis makes*, or does it challenge *the type of explanation the thesis offers*? If the latter, it is a competing programme signal.
 
-**If detected:** Flag for background exploration. The main loop continues without interruption — do not pause, do not switch to exploring the competing programme. Flag it and move on.
+**If detected:** Flag for background exploration. The main loop continues without interruption — do not pause, do not switch to exploring the competing programme.
 
 ## Output Format
 
@@ -140,8 +140,8 @@ adversarial:
 Append to `.claude/dialectic/scratchpad.md` with header `## Adversarial Pass`.
 
 Update `state.json`:
-- Set `phase` to `"compression"`
 - Write adversarial results under `adversarial` key
+- Do NOT set `phase` — the stop hook owns phase transitions
 
 ## Do NOT
 
@@ -155,4 +155,4 @@ Update `state.json`:
 
 ## CRITICAL: Stop After Writing Output
 
-After writing your adversarial output and updating `state.json` with `phase: "compression"` and the adversarial results, **stop responding immediately**. Do not begin compression. Do not write transition headers. The stop hook owns all transitions — it reads `state.json` and re-feeds the correct prompt.
+After writing your adversarial output and updating `state.json` with the adversarial results, **stop responding immediately**. Do not begin compression. Do not write transition headers. Do not set `phase`. The stop hook owns all phase transitions — it reads `state.json` and re-feeds the correct prompt.
