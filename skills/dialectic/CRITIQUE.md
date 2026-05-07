@@ -40,7 +40,7 @@ Use `WebSearch` to verify or challenge key claims from the expansion pass. Budge
 - Expert opinions that contradict the current thesis framing
 - Data that resolves identified `[TENSION]` markers
 
-Mark any web-sourced findings that change probe outcomes. If a probe result would differ with updated evidence, note the delta.
+For any web-sourced finding that changes a probe outcome, append `[WEB]` to the probe's rationale in the output yaml and state what changed. If a probe result would differ with updated evidence, state the original result and the revised result in the probe's rationale.
 
 ## Preservation Gate (Required)
 

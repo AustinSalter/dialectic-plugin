@@ -128,6 +128,50 @@ MANIFEST_EOF
   echo "$session_dir"
 }
 
+# Wait barrier: before terminal decisions, wait for active background
+# explorations to complete (up to 120s). Returns 0 if new results arrived.
+wait_for_explorations() {
+  local active_count
+  active_count=$(jq -r '.explorations.active | length' "$STATE_FILE" 2>/dev/null)
+  if [ "$active_count" = "0" ] || [ "$active_count" = "null" ] || [ -z "$active_count" ]; then
+    return 1  # No active explorations
+  fi
+
+  local explorations_dir="$STATE_DIR/explorations"
+  if [ ! -d "$explorations_dir" ]; then
+    return 1
+  fi
+
+  local initial_count
+  initial_count=$(find "$explorations_dir" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$initial_count" -ge "$active_count" ]; then
+    return 1  # All results already present
+  fi
+
+  local pending=$((active_count - initial_count))
+  echo "  Waiting for $pending background exploration(s) (timeout: 120s)..."
+
+  local elapsed=0
+  while [ "$elapsed" -lt 120 ]; do
+    sleep 5
+    elapsed=$((elapsed + 5))
+    local current_count
+    current_count=$(find "$explorations_dir" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$current_count" -ge "$active_count" ]; then
+      echo "  Explorations completed ($current_count result(s))"
+      return 0
+    fi
+  done
+
+  local final_count
+  final_count=$(find "$explorations_dir" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+  echo "  Exploration timeout — $final_count/$active_count completed"
+  if [ "$final_count" -gt "$initial_count" ]; then
+    return 0  # Some new results arrived
+  fi
+  return 1
+}
+
 # ============================================================
 # REASONING LOOP
 # ============================================================
@@ -146,39 +190,53 @@ if [ "$LOOP" = "reasoning" ]; then
       jq '.decision = "continue"' "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
       # Fall through to the continue block below
-    elif [ "$HOLDOUT" = "true" ]; then
-      # REASONING COMPLETE with holdout — transition to holdout phase
-      jq '.loop = "holdout"' "$STATE_FILE" > "$STATE_FILE.tmp"
-      mv "$STATE_FILE.tmp" "$STATE_FILE"
-      echo ""
-      echo "================================================"
-      echo "  Reasoning loop complete! Running holdout validation..."
-      echo "  R: $R | E: $E | C: $C | Iterations: $ITERATION"
-      echo "================================================"
-
-      echo "Reasoning concluded with --holdout enabled. Run the holdout protocol from commands/dialectic.md: serialize the trace, spawn the holdout subagent, extract the verdict, and update state.json." >&2
-      exit 2
     else
-      # REASONING COMPLETE — exit cleanly, user invokes distillation separately
-      jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
-      mv "$STATE_FILE.tmp" "$STATE_FILE"
-      echo ""
-      echo "================================================"
-      echo "  Reasoning loop complete!"
-      echo "  R: $R | E: $E | C: $C | Iterations: $ITERATION"
-      echo ""
-      echo "  Run /dialectic:dialectic-distill to produce"
-      echo "  the conviction memo."
-      echo "  Run /dialectic:forge to produce build spec."
-      echo "================================================"
-      exit 0
+      # Wait barrier: wait for active explorations before finalizing
+      if wait_for_explorations; then
+        echo "Background exploration(s) completed while concluding. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the CONCLUDE decision. Update convergence in state.json." >&2
+        exit 2
+      fi
+
+      if [ "$HOLDOUT" = "true" ]; then
+        # REASONING COMPLETE with holdout — transition to holdout phase
+        jq '.loop = "holdout"' "$STATE_FILE" > "$STATE_FILE.tmp"
+        mv "$STATE_FILE.tmp" "$STATE_FILE"
+        echo ""
+        echo "================================================"
+        echo "  Reasoning loop complete! Running holdout validation..."
+        echo "  R: $R | E: $E | C: $C | Iterations: $ITERATION"
+        echo "================================================"
+
+        echo "Reasoning concluded with --holdout enabled. Run the holdout protocol from commands/dialectic.md: serialize the trace, spawn the holdout subagent, extract the verdict, and update state.json." >&2
+        exit 2
+      else
+        # REASONING COMPLETE — exit cleanly, user invokes distillation separately
+        jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
+        mv "$STATE_FILE.tmp" "$STATE_FILE"
+        echo ""
+        echo "================================================"
+        echo "  Reasoning loop complete!"
+        echo "  R: $R | E: $E | C: $C | Iterations: $ITERATION"
+        echo ""
+        echo "  Run /dialectic:dialectic-distill to produce"
+        echo "  the conviction memo."
+        echo "  Run /dialectic:forge to produce build spec."
+        echo "================================================"
+        exit 0
+      fi
     fi
   fi
 
   # Check for elevation — reframe thesis entirely
   if [ "$DECISION" = "elevate" ] || [ "$DECISION" = "ELEVATE" ]; then
-    # Evidence gate: ELEVATE requires E >= 0.4 (CRITIQUE.md rule)
-    E_TOO_LOW=$(echo "$E < 0.4" | bc -l 2>/dev/null)
+    ELEVATE_TRIGGER=$(jq -r '.elevate_trigger // "original"' "$STATE_FILE" 2>/dev/null)
+    # Evidence gate: only the "original" trigger requires E >= 0.4
+    # Eager triggers (lakatosian, adversarial, chamberlin) have their own logic
+    if [ "$ELEVATE_TRIGGER" = "original" ]; then
+      E_TOO_LOW=$(echo "$E < 0.4" | bc -l 2>/dev/null)
+    else
+      E_TOO_LOW="0"
+    fi
     if [ "$E_TOO_LOW" = "1" ]; then
       echo ""
       echo "================================================"
@@ -190,6 +248,12 @@ if [ "$LOOP" = "reasoning" ]; then
       mv "$STATE_FILE.tmp" "$STATE_FILE"
       # Fall through to continue block
     else
+      # Wait barrier: wait for active explorations before elevating
+      if wait_for_explorations; then
+        echo "Background exploration(s) completed while elevating. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the ELEVATE decision. The exploration results may inform the elevated thesis." >&2
+        exit 2
+      fi
+
       NEW_ITERATION=$((ITERATION + 1))
       jq ".iteration = $NEW_ITERATION | .phase = \"expansion\" | .decision = null" "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
@@ -198,7 +262,11 @@ if [ "$LOOP" = "reasoning" ]; then
       echo "================================================"
       echo "  ELEVATE — thesis needs fundamental reframe"
       echo "  Iteration $NEW_ITERATION / $MAX_ITERATIONS"
-      echo "  Evidence gate passed: E=$E >= 0.4"
+      if [ "$ELEVATE_TRIGGER" = "original" ]; then
+        echo "  Evidence gate passed: E=$E >= 0.4"
+      else
+        echo "  Eager trigger: $ELEVATE_TRIGGER (evidence gate bypassed)"
+      fi
       echo "================================================"
 
       echo "The critique determined the thesis needs elevation — a fundamental reframe. Read the elevated thesis from the critique output in scratchpad.md (look for the if_elevate block). Adopt the elevated thesis as your new working thesis, update state.json, and begin a fresh expansion pass from the new frame." >&2
@@ -208,6 +276,12 @@ if [ "$LOOP" = "reasoning" ]; then
 
   # Check iteration limit — reasoning complete, user invokes distillation separately
   if [ "$ITERATION" -ge "$MAX_ITERATIONS" ]; then
+    # Wait barrier: wait for active explorations before forced conclusion
+    if wait_for_explorations; then
+      echo "Background exploration(s) completed at max iterations. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before concluding. Update convergence in state.json." >&2
+      exit 2
+    fi
+
     ESCAPE_NOTE=""
     if [ "$(echo "$E < 0.5" | bc -l 2>/dev/null)" = "1" ]; then
       ESCAPE_NOTE=" E=$E (low evidence saturation)."
