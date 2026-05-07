@@ -79,17 +79,38 @@ Gather evidence *within the selected frame*.
 | `[THREAD]` | Worth deeper investigation |
 | `[INSIGHT]` | Pattern, connection, reframe |
 
-**Web research (use actively, not passively):**
+**Reading sources**
 
-You have `WebSearch` and `WebFetch` available. Use them. Do not rely solely on training data for empirical claims.
+Read in flow, not in extraction mode.
 
-- Budget 3-5 `WebSearch` calls per expansion pass
-- Search for: recent data, counter-evidence, expert positions on the other side, market data, announcements
-- Use `WebFetch` to follow high-signal URLs from search results
-- Synthesize after each result before searching again
+As you read, be alert to four things. Emit markers when you notice them. Don't hunt for them.
+
+**Position.** Where does this source sit?
+- `[PRIMARY]` — original assertion, original data, first to say it
+- `[DOWNSTREAM]` — paraphrasing or restating someone else's claim
+- `[CRITIQUE]` — arguing against a claim you've seen
+- `[SYNTHESIS]` — combining prior claims into new framing
+
+Five downstream sources are one source. One primary against four downstream is not "outnumbered." Position changes the math.
+
+**Load-bearing parts.** What does the argument actually rest on? Often the buried qualifier, the conceded footnote, the aside that constrains the headline claim. Query-relevant ≠ load-bearing. Notice the part the author would lose sleep over if it were wrong.
+
+**Incentive.** Who benefits if this is believed? Be specific: "vendor selling X," "researcher whose prior work depends on Y." Aligned incentive doesn't make a source wrong — it makes it a source whose load-bearing parts deserve harder reading.
+
+**Stitch points.** When this source connects to one you've already read — bridges a gap, resolves a tension, sharpens a contradiction — name it as it happens: `[BRIDGE: A→B]`. The non-obvious findings live in the joins, not in any single source. If your output is converging on the obvious, you're missing the stitches.
+
+**Reading heuristics:**
+- Read in the order fetched. Earlier sources frame later ones.
+- Don't restart your reasoning per source. Carry it.
+- A source that doesn't shift anything is worth one line.
+- A source that shifts the frame is worth a paragraph.
+- If every source agrees, ask what they all share that might be wrong. Consensus is a position too.
+- Budget 3-5 fetches per expansion pass
 - Mark search-sourced evidence with `[EVIDENCE:web]` vs training-data evidence with `[EVIDENCE:prior]`
 - Note what you searched for but couldn't find
-- If no web search is possible, state this explicitly so the user knows evidence is from training data only
+- If no fetch is possible, state this so the user knows evidence is from training data only
+
+**What this is not**: Not a per-source extraction schema. Not a checklist run on each fetch. Not a parser. A way of reading.
 
 ## Do NOT
 
