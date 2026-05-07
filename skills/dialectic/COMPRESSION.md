@@ -21,21 +21,6 @@ Rate each claim's evidence:
 
 Claims rated 1-2 are evidence gaps.
 
-## Severity Rating (Popperian)
-
-If an adversarial pass has run, each claim also receives a severity rating from the `[RED_TEAM]` markers:
-
-| Rating | Meaning | Confidence Impact |
-|--------|---------|-------------------|
-| **UNTESTED** | No adversarial search targeted this claim | Neutral — treat as unconfirmed |
-| **SURVIVED** | Claim passed a test it could have failed | Boost: this claim has earned its confidence |
-| **CHALLENGED** | Counter-evidence weakens but doesn't break | Reduce confidence, note what would resolve |
-| **BROKEN** | Counter-evidence directly falsifies | Claim cannot support the thesis as-is |
-
-Claims with `SURVIVED` severity AND evidence rating 4-5 are the thesis's strongest supports. Claims with `BROKEN` severity require thesis repair regardless of evidence rating.
-
-If `[WEIGHT:human]` adjustments exist (from interactive mode), apply them after severity ratings. Human weight adjustments override mechanical ratings — tag affected claims with `[WEIGHT:human]`.
-
 ## Output Format (YAML)
 
 ```yaml
@@ -44,8 +29,6 @@ insights:
     evidence: ["..."]
     counters_addressed: ["..."]
     evidence_rating: [1-5]
-    severity: UNTESTED | SURVIVED | CHALLENGED | BROKEN
-    severity_note: "..." # what test it survived/failed, or "no adversarial search targeted this claim"
 
 tensions:
   - description: "..."

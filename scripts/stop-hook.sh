@@ -17,6 +17,15 @@ if [ ! -f "$STATE_FILE" ]; then
   exit 0  # No active loop, allow exit
 fi
 
+# Staleness guard: if state.json hasn't been modified in 2 hours,
+# the session is orphaned (e.g. terminal closed mid-session).
+# Allow the stop so the hook doesn't block every future conversation.
+STALE_THRESHOLD_MIN=120
+if [ "$(find "$STATE_FILE" -mmin +${STALE_THRESHOLD_MIN} 2>/dev/null)" ]; then
+  echo "Dialectic state.json is stale (>${STALE_THRESHOLD_MIN} min). Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume." >&2
+  exit 0
+fi
+
 # Read state
 DECISION=$(jq -r '.decision // ""' "$STATE_FILE" 2>/dev/null)
 ITERATION=$(jq -r '.iteration // 0' "$STATE_FILE" 2>/dev/null)
@@ -34,10 +43,6 @@ HOLDOUT_MAX_PASSES=$(jq -r '.holdout_state.max_passes // 2' "$STATE_FILE" 2>/dev
 FORGE_ITER=$(jq -r '.forge_iteration // 1' "$STATE_FILE" 2>/dev/null)
 FORGE_MAX=$(jq -r '.forge_max // 4' "$STATE_FILE" 2>/dev/null)
 FORGE_MIN=$(jq -r '.forge_min // 2' "$STATE_FILE" 2>/dev/null)
-PHASE=$(jq -r '.phase // "expansion"' "$STATE_FILE" 2>/dev/null)
-INTERACTIVE_MODE=$(jq -r '.interactive.mode // ""' "$STATE_FILE" 2>/dev/null)
-PROGRAMME_STATUS=$(jq -r '.programme_status.current // "PROGRESSIVE"' "$STATE_FILE" 2>/dev/null)
-CONSECUTIVE_DEGENERATING=$(jq -r '.programme_status.consecutive_degenerating // 0' "$STATE_FILE" 2>/dev/null)
 
 # 3D Confidence: R (defensibility), E (evidence saturation), C (domain determinacy)
 CONF_TYPE=$(jq -r '.thesis.confidence | type' "$STATE_FILE" 2>/dev/null)
@@ -320,149 +325,21 @@ if [ "$LOOP" = "reasoning" ]; then
     fi
   fi
 
-  # Continue reasoning loop — check phase for correct transition
-  PHASE=$(jq -r '.phase // "expansion"' "$STATE_FILE" 2>/dev/null)
+  # Continue reasoning loop — increment iteration and re-feed
+  NEW_ITERATION=$((ITERATION + 1))
+  jq ".iteration = $NEW_ITERATION" "$STATE_FILE" > "$STATE_FILE.tmp"
+  mv "$STATE_FILE.tmp" "$STATE_FILE"
 
-  if [ "$PHASE" = "expansion" ]; then
-    if [ "$INTERACTIVE_MODE" = "interpret" ] || [ "$INTERACTIVE_MODE" = "full" ]; then
-      # Check if there are [AMBIGUOUS] items in the scratchpad
-      AMBIGUOUS_COUNT=$(grep -c '\[AMBIGUOUS\]' "$STATE_DIR/scratchpad.md" 2>/dev/null || echo "0")
-      if [ "$AMBIGUOUS_COUNT" -gt "0" ]; then
-        jq '.phase = "interpret_pause"' "$STATE_FILE" > "$STATE_FILE.tmp"
-        mv "$STATE_FILE.tmp" "$STATE_FILE"
+  echo ""
+  echo "================================================"
+  echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS (floor: $MIN_ITERATIONS)"
+  echo "  Confidence — R: $R | E: $E | C: $C"
+  echo "  Thesis: ${THESIS}..."
+  echo "  Decision: $DECISION -> continuing"
+  echo "================================================"
+  echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
 
-        echo ""
-        echo "================================================"
-        echo "  INTERPRET PAUSE — $AMBIGUOUS_COUNT ambiguous items"
-        echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-        echo "================================================"
-        echo "Display the INTERPRET pause. Read .claude/dialectic/scratchpad.md and extract all [AMBIGUOUS] items. Present them to the user and ask for their interpretation. Tag responses with [INTERPRET:human], append to scratchpad.md, record in state.json interactive.interpret_inputs, then transition to adversarial." >&2
-        exit 2
-      fi
-    fi
-    # No pause needed — transition to adversarial
-    jq '.phase = "adversarial"' "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Expansion complete — running adversarial pass"
-    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-    echo "  Confidence — R: $R | E: $E | C: $C"
-    echo "================================================"
-    echo "Run the adversarial pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/ADVERSARIAL.md. Identify load-bearing claims, run red team searches, attempt lightweight inversion, detect competing programmes." >&2
-    exit 2
-
-  elif [ "$PHASE" = "interpret_pause" ]; then
-    # Human has provided interpretation — transition to adversarial
-    jq '.phase = "adversarial"' "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Interpretation received — running adversarial pass"
-    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-    echo "================================================"
-    echo "Run the adversarial pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/ADVERSARIAL.md. Include [INTERPRET:human] inputs from the interpret pause." >&2
-    exit 2
-
-  elif [ "$PHASE" = "adversarial" ]; then
-    if [ "$INTERACTIVE_MODE" = "weight" ] || [ "$INTERACTIVE_MODE" = "full" ]; then
-      jq '.phase = "weight_pause"' "$STATE_FILE" > "$STATE_FILE.tmp"
-      mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-      echo ""
-      echo "================================================"
-      echo "  WEIGHT PAUSE — evidence review"
-      echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-      echo "================================================"
-      echo "Display the WEIGHT pause. Read .claude/dialectic/scratchpad.md and present the full evidence corpus with severity ratings. Ask if any evidence is over/underweighted or if items chain together. Tag responses with [WEIGHT:human], append to scratchpad.md, record in state.json interactive.weight_adjustments, then transition to compression." >&2
-      exit 2
-    fi
-    # No pause needed — transition to compression
-    jq '.phase = "compression"' "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Adversarial pass complete — running compression"
-    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-    echo "================================================"
-    echo "Run the compression pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/COMPRESSION.md. Integrate adversarial findings and severity ratings." >&2
-    exit 2
-
-  elif [ "$PHASE" = "weight_pause" ]; then
-    # Human has provided weight adjustments — transition to compression
-    jq '.phase = "compression"' "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Weight adjustments received — running compression"
-    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-    echo "================================================"
-    echo "Run the compression pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/COMPRESSION.md. Apply [WEIGHT:human] adjustments from the weight pause." >&2
-    exit 2
-
-  elif [ "$PHASE" = "compression" ]; then
-    # Compression done → transition to critique
-    jq '.phase = "critique"' "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Compression complete — running critique"
-    echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-    echo "================================================"
-    echo "Run the critique pass. Read state from .claude/dialectic/state.json and follow skills/dialectic/CRITIQUE.md. Include programme assessment and alternate frame probe (if consecutive_degenerating >= 1)." >&2
-    exit 2
-
-  elif [ "$PHASE" = "choose_pause" ]; then
-    # Human has chosen — apply decision and continue
-    NEW_ITERATION=$((ITERATION + 1))
-    jq ".iteration = $NEW_ITERATION | .phase = \"expansion\" | .decision = null" "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Programme choice received — continuing"
-    echo "  Iteration $NEW_ITERATION / $MAX_ITERATIONS"
-    echo "================================================"
-    echo "Apply the human's programme choice from the CHOOSE pause. If they chose to switch, adopt the new thesis and begin expansion. If they chose to keep going, continue with the current thesis. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
-    exit 2
-
-  else
-    # Critique done (or unknown phase) — check for CHOOSE pause
-    if [ "$INTERACTIVE_MODE" = "steering" ] || [ "$INTERACTIVE_MODE" = "full" ]; then
-      CHOOSE_NEEDED=$(jq -r '.convergence.recommendation // ""' "$STATE_FILE" 2>/dev/null)
-      if [ "$CHOOSE_NEEDED" = "human_choice_required" ]; then
-        jq '.phase = "choose_pause"' "$STATE_FILE" > "$STATE_FILE.tmp"
-        mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-        echo ""
-        echo "================================================"
-        echo "  CHOOSE PAUSE — programme selection"
-        echo "  Iteration $ITERATION / $MAX_ITERATIONS"
-        echo "  Programme: $PROGRAMME_STATUS (degenerating: $CONSECUTIVE_DEGENERATING)"
-        echo "================================================"
-        echo "Display the CHOOSE pause. Present the current thesis vs exploration results from .claude/dialectic/explorations/. Ask the user to pick direction or override with 'keep going'. Tag with [CHOOSE:human], record in state.json interactive.choose_decisions, then apply the decision." >&2
-        exit 2
-      fi
-    fi
-    # No pause needed — increment iteration, reset to expansion
-    NEW_ITERATION=$((ITERATION + 1))
-    jq ".iteration = $NEW_ITERATION | .phase = \"expansion\" | .decision = null" "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
-
-    echo ""
-    echo "================================================"
-    echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS (floor: $MIN_ITERATIONS)"
-    echo "  Confidence — R: $R | E: $E | C: $C"
-    echo "  Thesis: ${THESIS}..."
-    echo "================================================"
-    echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
-    exit 2
-  fi
+  exit 2  # Block stop, continue loop
 
 # ============================================================
 # DISTILLATION LOOP
