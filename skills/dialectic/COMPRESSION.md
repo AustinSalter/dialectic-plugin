@@ -10,6 +10,14 @@ Convergent synthesis phase. Goal: distill expansion to decision-relevant state.
 4. **Resolve or carry tensions** — Can conflicting evidence be reconciled?
 5. **Flag unexplored threads** — What still needs investigation?
 
+## Stitch Detection
+
+Before compressing markers into insights, scan for:
+- Sources marked `[PRIMARY]` for the same claim — count these as the evidence base
+- Sources marked `[DOWNSTREAM]` — group under the primary they trace to, do not count as independent evidence
+- `[BRIDGE: A→B]` markers — promote these to candidate insights with higher weight than single-source findings
+- `[ALIGNED]` primary sources without an `[OPPOSING]` or `[NEUTRAL]` corroborator — flag the dependent insight with reduced confidence
+
 ## Evidence Strength Rating
 
 Rate each claim's evidence:
