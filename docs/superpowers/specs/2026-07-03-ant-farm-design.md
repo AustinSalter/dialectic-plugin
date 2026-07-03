@@ -42,7 +42,7 @@ research already accepts for "we have heard all the themes."
 | Term | Meaning |
 |---|---|
 | **Atom** | One self-contained claim/consideration/evidence record. The unit of storage, embedding, and counting. |
-| **Pose** | Sensor geometry for a trace: model family, persona, frame, starting hypothesis, round. Recorded so coverage claims can cite *where we looked*, not just what we found. |
+| **Vantage** | Sensor geometry for a trace: model family, persona, frame, starting hypothesis, round. Recorded so coverage claims can cite *where we looked*, not just what we found. |
 | **Farm** | One reasoning trace: a hypothesis explored through expand → refute → sublate rounds. |
 | **Well** | The full corpus: every atom ever recorded, superseded and conceded included, fully traversable. Nothing is deleted. |
 | **View** | The computed HEAD: current best-confidence state, small and clean, the default retrieval target. |
@@ -69,7 +69,7 @@ README states this plainly. Users without workflows can use dialectic-plugin v1.
 | Agent | Context | Reads | Job |
 |---|---|---|---|
 | **surveyor** | fresh | question + prior corpus view | Framing: stasis, altitude, DISSOLVE check, reference class + base rate, Zwicky field, rival hypotheses (incl. null) |
-| **farm-runner** | fresh per round, continuity via its farm dir | own farm dir + view (warm start) | One round: sublate last round's critiques → expand → compress → emit atoms |
+| **scout** | fresh per round, continuity via its farm dir | own farm dir + view (warm start) | One round: sublate last round's critiques → expand → compress → emit atoms |
 | **blind-critic** | fresh, blinded | one farm's serialized trace, **as an authorless external artifact** + the well | Refutation: warrant probe, severity grading, premortem, defeater classification |
 | **hole-finder** | fresh | the view + certificate | Produce a consideration absent from the corpus, or fail trying |
 | **stitcher** | fresh | all farms' compressed outputs + evidence inventory | ACH matrix, disagreement investigation, crux extraction, basin/frontier declaration |
@@ -90,10 +90,10 @@ Evidence-backed blinding rules (non-negotiable, they carry the measured effect s
 
 1. **Model families.** Same-model error correlation ≈ 0.4 and is not lowered by
    temperature or prompt perturbation; cross-family ≈ 0.08. Three farms across three
-   families beat nine same-model farms. Family per farm is a pose field.
+   families beat nine same-model farms. Family per farm is a vantage field.
 2. **Mundane, varied personas + CoT.** Ordinary personas ("a procurement manager")
    restore knowledge partitioning; exotic ones change style, not content.
-3. **Human atoms.** User-seeded considerations enter with `pose.sensor: human` — the one
+3. **Human atoms.** User-seeded considerations enter with `vantage.sensor: human` — the one
    sensor guaranteed outside the model class's blind spots. Runs must engage them.
 
 ---
@@ -111,9 +111,9 @@ malformed records cannot enter the corpus.
 ```jsonc
 {
   "id": "c-8f3a…",              // content hash — stable across runs
-  "type": "claim",               // claim | evidence | tension | crux | hypothesis | source | pose | tripwire
+  "type": "claim",               // claim | evidence | tension | crux | hypothesis | source | vantage | tripwire
   "text": "…",                   // SELF-CONTAINED: no pronouns, no unresolved references; embeddable without context (validator-enforced)
-  "pose": {"run": "r7", "farm": "B", "family": "…", "persona": "…", "round": 2, "sensor": "model|human"},
+  "vantage": {"run": "r7", "farm": "B", "family": "…", "persona": "…", "round": 2, "sensor": "model|human"},
   "status": "live",              // live | contested | superseded | conceded
   "superseded_by": null,
   "strength": 4,                 // evidence only, 1-5
@@ -133,7 +133,7 @@ malformed records cannot enter the corpus.
   "rel": "supports",             // supports | rebuts | undercuts | qualifies | bridges | depends_on | supersedes | scored_against
   "warrant": "…",                // Toulmin: the rule licensing this inference lives ON the edge — attackable
   "consistency": null,           // scored_against only: consistent | inconsistent | neutral
-  "pose": {…}, "ts": "…"
+  "vantage": {…}, "ts": "…"
 }
 ```
 
@@ -147,7 +147,7 @@ graph into prose and regex-scraped it back — v2 stops pretending.
 A deterministic reducer folds run events into current state:
 
 - **Merge operator = entailment clustering.** A re-found consideration is an
-  *observation*, not a duplicate: increment `sightings`, attach the pose, possibly
+  *observation*, not a duplicate: increment `sightings`, attach the vantage, possibly
   upgrade status. Novel atoms create pages.
 - **Supersession without deletion.** `status: superseded` + `supersedes` edge. Every
   claim page carries its full revision history — the argument's life story.
@@ -177,7 +177,7 @@ reasoning quality matters. Tier filtering is the fix: two Chroma collections (`v
 | Store | Content | Role |
 |---|---|---|
 | JSONL run logs | events | source of truth |
-| Chroma `view` / `well` | embedded atom text + metadata filters (pose, type, status, round) | coverage math ("same species" = embedding cluster), gap detection (low-density regions), dedup, retrieval |
+| Chroma `view` / `well` | embedded atom text + metadata filters (vantage, type, status, round) | coverage math ("same species" = embedding cluster), gap detection (low-density regions), dedup, retrieval |
 | Graph state (start: JSONL + NetworkX in scripts; Kùzu when queries earn it) | nodes + edges | centrality (cruxes), community detection (basins), un-sublated-undercutter queries, blast-radius propagation |
 | Obsidian render | one markdown page per view node, `[[wikilinks]]` for edges | free human map UI |
 
@@ -198,7 +198,7 @@ base rate ("how often do theses shaped like this pay off?"); Zwicky field (dimen
 values, incoherent cells pruned) — the deductive possibility space; rival hypotheses
 (2–4 incl. the null), warm-started from prior basins when the corpus has them.
 
-**Phase 2 — Fan-out** (farm-runner × N, parallel via `pipeline()`). Per farm, per round:
+**Phase 2 — Fan-out** (scout × N, parallel via `pipeline()`). Per farm, per round:
 1. *Sublate* last round's critique reports (in-farm context: preservation gate,
    amputation check, Lakatos degeneration ledger — 2 consecutive novel-content-free
    patches force ELEVATE or CONCEDE).
@@ -255,13 +255,13 @@ Three metrics, always reported together — no single number is defensible alone
 **Corrections (both mandatory):**
 
 - **Correlation discount.** Compute inter-trace correlation (cluster co-membership
-  across same-family poses); derive **n_eff < n** (effective independent scans); feed
+  across same-family vantages); derive **n_eff < n** (effective independent scans); feed
   n_eff, not n, into all estimates. Same-model ensembles are optimistically biased *by
   construction* — shared blind spots produce no singletons, so the estimator fails
   silently exactly where it matters. The certificate reports n, n_eff, and the family mix.
 - **Scope statement.** All coverage is of the **sensor-reachable argument space**. The
-  certificate lists the poses run (scan geometry), not just returns — a dense cloud
-  scanned from one pose is one perspective at high resolution, not coverage.
+  certificate lists the vantages run (scan geometry), not just returns — a dense cloud
+  scanned from one vantage is one perspective at high resolution, not coverage.
 
 **Adversarial line-item:** hole-finder survival streak (K consecutive failures to
 produce an absent consideration), with early hit-rate reported as the test's severity —
@@ -304,8 +304,8 @@ R/E/C as probabilities.
   becomes a stored query the sentinel checks each run; fired → contested → blast radius.
   The map self-reports staleness.
 - **Human atoms are first-class** and required engagement.
-- **The instrument learns its optics.** Pose-level yield stats (novel *verified* atoms
-  per pose) accumulate; future runs allocate the independence budget by measured yield.
+- **The instrument learns its optics.** Vantage-level yield stats (novel *verified* atoms
+  per vantage) accumulate; future runs allocate the independence budget by measured yield.
 - **Cross-question compounding.** Questions embed; new questions inherit the relevant
   neighborhood subgraph as prior context.
 
