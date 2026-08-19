@@ -11,7 +11,7 @@ const fs = require("fs");
 const path = require("path");
 
 // On macOS/Linux, delegate to the bash hook
-if (process.platform !== "win32") {
+if (process.platform !== "win32" && process.env.DIALECTIC_HOOK_IMPL !== "node") {
   const { execFileSync } = require("child_process");
   const bashHook = path.join(__dirname, "stop-hook.sh");
   try {
