@@ -469,6 +469,22 @@ if (loop === "reasoning") {
   }
 
   if (decision === "conclude") {
+    // Promotion check: the memo must carry its commitments (SYNTHESIS.md spec).
+    const draftCheck = path.join(STATE_DIR, "memo-draft.md");
+    if (fs.existsSync(draftCheck)) {
+      const memo = fs.readFileSync(draftCheck, "utf8");
+      const missing = [];
+      if ((state.thesis && state.thesis.status) === "refuted") {
+        if (!/refut/i.test(memo)) missing.push("refutation-basis");
+      } else {
+        if (!/(^|[^a-z])bet([^a-z]|$)/i.test(memo)) missing.push("the-bet");
+        if (!/falsif|disconfirm/i.test(memo)) missing.push("disconfirmation");
+      }
+      if (missing.length) {
+        blockStop(`Memo promotion blocked — memo-draft.md is missing: ${missing.join(", ")}. The memo spec is skills/dialectic/SYNTHESIS.md: state the bet and its falsification triggers (or, for a refuted thesis, the refuting basis). Revise memo-draft.md, keep decision as conclude, and stop again.`);
+      }
+    }
+
     // Distillation complete — preserve artifacts, clean up, and exit
     log("");
     log("================================================");

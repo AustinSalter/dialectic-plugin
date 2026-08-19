@@ -461,6 +461,22 @@ elif [ "$LOOP" = "distillation" ]; then
       exit 2
     fi
 
+    # Promotion check: the memo must carry its commitments (SYNTHESIS.md spec).
+    if [ -f "$STATE_DIR/memo-draft.md" ]; then
+      THESIS_STATUS=$(jq -r '.thesis.status // ""' "$STATE_FILE" 2>/dev/null)
+      MISSING=""
+      if [ "$THESIS_STATUS" = "refuted" ]; then
+        grep -qiE 'refut' "$STATE_DIR/memo-draft.md" || MISSING=" refutation-basis"
+      else
+        grep -qiE '(^|[^a-z])bet([^a-z]|$)' "$STATE_DIR/memo-draft.md" || MISSING=" the-bet"
+        grep -qiE 'falsif|disconfirm' "$STATE_DIR/memo-draft.md" || MISSING="$MISSING disconfirmation"
+      fi
+      if [ -n "$MISSING" ]; then
+        echo "Memo promotion blocked — memo-draft.md is missing:$MISSING. The memo spec is skills/dialectic/SYNTHESIS.md: state the bet and its falsification triggers (or, for a refuted thesis, the refuting basis). Revise memo-draft.md, keep decision as conclude, and stop again." >&2
+        exit 2
+      fi
+    fi
+
     # Distillation complete — preserve artifacts, clean up, and exit
     echo ""
     echo "================================================"

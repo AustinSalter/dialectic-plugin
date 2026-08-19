@@ -169,4 +169,26 @@ for (const impl of BOTH) {
     runHook(sb, impl);
     assert.match(readState(sb).last_hook_ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   });
+
+  test(`[${impl}] distill conclude with betless memo → promotion blocked`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { loop: "distillation", decision: "conclude",
+      distillation_iteration: 2, distillation_min: 2, distillation_max: 4 });
+    writeScratchpad(sb, { probeBlocks: 3, extra: "probe_results:\n  t: PASS\nprobe_results:\n  t: PASS\n" });
+    writeArtifact(sb, "memo-draft.md", "# Memo\nAll is well. No commitments here.\n");
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /Memo promotion blocked/);
+  });
+
+  test(`[${impl}] refuted thesis + memo naming the refutation → promotes`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { loop: "distillation", decision: "conclude",
+      distillation_iteration: 2, distillation_min: 2, distillation_max: 4,
+      thesis: { current: "t", status: "refuted", confidence: { R: 0.6, E: 0.6, C: 0.6 }, confidence_history: [] } });
+    writeScratchpad(sb, { probeBlocks: 3, extra: "probe_results:\n  t: PASS\nprobe_results:\n  t: PASS\n" });
+    writeArtifact(sb, "memo-draft.md", "# Memo\nThe thesis is refuted because E2 breaks C1. It would be resurrected by X.\n");
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+  });
 }
