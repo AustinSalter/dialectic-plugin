@@ -161,4 +161,12 @@ for (const impl of BOTH) {
     assert.equal(abandoned.length, 1);
     assert.ok(existsSync(join(outDir, abandoned[0], "scratchpad.md")));
   });
+
+  test(`[${impl}] hook stamps last_hook_ts on every firing`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 1, decision: null });
+    writeScratchpad(sb, { probeBlocks: 1 });
+    runHook(sb, impl);
+    assert.match(readState(sb).last_hook_ts, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  });
 }

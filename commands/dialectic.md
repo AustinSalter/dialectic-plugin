@@ -16,7 +16,7 @@ Test whether `.claude/dialectic/state.json` exists on disk:
 ### Argument Parsing
 
 Parse `$ARGUMENTS` for optional flags before the thesis text:
-- `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 2)
+- `--min-iterations=N` — Minimum iterations before CONCLUDE is allowed (default: 3)
 - `--max-iterations=N` — Maximum iterations before forced exit (default: 5)
 - `--holdout` — Enable holdout validation after reasoning concludes
 
@@ -62,6 +62,8 @@ Create the directory `.claude/dialectic/` and write `state.json`:
   "keep_artifacts": ["memo", "spine", "history", "scratchpad", "state", "prompt"]
 }
 ```
+
+Set `session_id` by running `date +%Y%m%dT%H%M%S` via Bash and prefixing `dialectic-` — never invent or estimate the timestamp.
 
 Set `holdout: true` in state.json if `--holdout` flag is present.
 
@@ -117,6 +119,14 @@ This applies to every decision:
 - **REJECT**: Stop. The hook re-loops once on a counter-thesis, or ends the run as a refutation.
 
 **Do not write transition headers or begin any next phase.**
+
+## State Ownership
+
+Two writers share `state.json`. The hook owns: `iteration`, `loop`, `phase` on transitions, `decision` nulling, `distillation_iteration`, `forge_iteration`, `reject_passes`, `last_hook_ts`. You own everything else. Before writing, re-read the file — the hook may have changed it since you last saw it. Update single fields with jq or python; never rewrite the file from memory and never string-edit it.
+
+## If the Hook Doesn't Fire
+
+After you write a decision and stop, the next thing you see must be a hook banner (and `last_hook_ts` in state.json will be fresh). If you are re-invoked with no banner, or `last_hook_ts` is missing or stale after your stop: do not emulate the loop. Do not increment `iteration`, change `loop`, or run the next pass. Tell the user the stop hook did not fire and stop. A self-administered loop defeats the reason the loop exists.
 
 ## Output Format
 

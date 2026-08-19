@@ -66,6 +66,10 @@ try {
   process.exit(0);
 }
 
+// Liveness beacon: models check this to detect a hook that never fired.
+state.last_hook_ts = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+writeState(state);
+
 const loop = state.loop || "reasoning";
 const decision = (state.decision || "").toLowerCase();
 const iteration = state.iteration || 0;

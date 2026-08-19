@@ -49,6 +49,10 @@ FORGE_ITER=$(jq -r '.forge_iteration // 1' "$STATE_FILE" 2>/dev/null)
 FORGE_MAX=$(jq -r '.forge_max // 4' "$STATE_FILE" 2>/dev/null)
 FORGE_MIN=$(jq -r '.forge_min // 2' "$STATE_FILE" 2>/dev/null)
 
+# Liveness beacon: models check this to detect a hook that never fired.
+jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.last_hook_ts = $ts' "$STATE_FILE" > "$STATE_FILE.tmp"
+mv "$STATE_FILE.tmp" "$STATE_FILE"
+
 # 3D Confidence: R (defensibility), E (evidence saturation), C (domain determinacy)
 CONF_TYPE=$(jq -r '.thesis.confidence | type' "$STATE_FILE" 2>/dev/null)
 if [ "$CONF_TYPE" = "object" ]; then
