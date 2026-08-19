@@ -37,6 +37,7 @@ Write spine to `.claude/dialectic/spine.yaml` (see Output Format below).
 ### Spine Validation
 
 - Every load-bearing claim has evidence with strength ≥ 3
+- Every evidence atom carries the source compression gave it — a spine atom without its source is a rumor with a strength score
 - Causal chain connects thesis to claims without gaps
 - No survived claim depends on a superseded claim
 
@@ -61,6 +62,17 @@ Run all five against each draft:
 | Sufficiency | Could the reader act on this without the scratchpad? | Missing decision-relevant information |
 | Conviction-Ink | Does every sentence advance the argument, provide evidence, or acknowledge risk? | Hedging, throat-clearing, decoration |
 | Threads | ≤3 independent argument threads held simultaneously? | Cognitive overload — compression failed |
+
+Each pass appends a `probe_results:` block to the scratchpad — one entry per probe, and each entry quotes the memo sentence it examined. A probe that names no sentence examined nothing.
+
+```yaml
+probe_results:
+  - probe: conviction_ink
+    examined: "[the memo sentence, quoted verbatim]"
+    verdict: [PASS | FAIL] — [what the sentence does or fails to do]
+```
+
+On pass 2+ the probes run adversarially (see SYNTHESIS.md's pass-2 column): quote the weakest sentence you can find, not the one that passes most easily.
 
 ## Compression Gate (Required)
 
@@ -98,7 +110,7 @@ spine:
   claims:
     - id: C1
       claim: "<specific claim>"
-      status: survived  # survived | superseded | weakened
+      status: survived  # survived | superseded | weakened | killed
       evidence: [E1, E3]
       depends_on: []
       load_bearing: true
@@ -107,6 +119,7 @@ spine:
     - id: E1
       statement: "<data point>"
       strength: 4  # 1-5 scale
+      source: "<URL, document, or 'prior'>"  # carried from compression
 
   causal_chain:
     - from: C1

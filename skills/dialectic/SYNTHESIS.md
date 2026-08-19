@@ -71,6 +71,18 @@ The thing the reader actually reads. Everything above is support for this table.
 |----------------|------------|-----------------|----------------|-----------------|
 | [ACTION VERB]  | High/Med/Low | [Timeframe]   | [Binding limit]| [Observable]    |
 
+### Verdict vocabulary is bounded by the state file
+
+The numbers stay out of the memo; they bound its verbs. Conviction cannot outrun the weakest dimension, so read the band off the lowest of R, E, and C — no averaging. A thesis with saturated evidence and broken reasoning is not medium anything.
+
+| Band (lowest of R, E, C) | Permitted language |
+|---|---|
+| < 0.5 | Conviction reads **Low**; "hold provisionally" language only — no ADOPT, no conviction verbs |
+| 0.5–0.7 | Conviction reads **Med**; "medium conviction," and ADOPT only with stated release conditions |
+| > 0.7 | Conviction reads **High**; conviction verdicts permitted |
+
+If the felt conviction disagrees with the numbers, the memo says so in a sentence — it may not outrank them.
+
 ---
 
 ## Example: Yahoo-Google (2002)
