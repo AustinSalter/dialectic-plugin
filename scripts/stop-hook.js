@@ -93,6 +93,9 @@ if (decision) {
     if (n < iteration) {
       blockStop(`Warrant gate: found ${n} 'probes:' block(s) in scratchpad.md but iteration is ${iteration}. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing.`);
     }
+    if (decision === "reject" && countBlocks(/^[ \t]*if_reject/gm) === 0) {
+      blockStop("Warrant gate: decision is reject but scratchpad.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again.");
+    }
   }
   if (loop === "distillation" && decision === "conclude") {
     const n = countBlocks(/^[ \t]*probe_results:/gm);
@@ -242,6 +245,55 @@ if (loop === "reasoning") {
         log("================================================");
         process.exit(0);
       }
+    }
+  }
+
+  // Check for rejection — the thesis is refuted. Legal from iteration 1:
+  // floors prevent premature conclusion; premature death is the point.
+  if (decision === "reject") {
+    if (waitForExplorations(state)) {
+      blockStop(
+        `Background exploration(s) completed while rejecting. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the REJECT decision.`
+      );
+    }
+
+    const rejectPasses = state.reject_passes || 0;
+    const counterThesis = state.counter_thesis || null;
+
+    if (counterThesis && rejectPasses < 1) {
+      state.reject_passes = rejectPasses + 1;
+      state.thesis.current = counterThesis;
+      state.counter_thesis = null;
+      state.iteration = 0;
+      state.decision = null;
+      state.phase = "expansion";
+      writeState(state);
+
+      log("");
+      log("================================================");
+      log("  REJECT — thesis refuted, counter-thesis offered");
+      log("  Re-entering reasoning with the counter-thesis (re-loop 1/1)");
+      log("================================================");
+
+      blockStop(
+        `The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in scratchpad.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped.`
+      );
+    } else {
+      state.loop = "awaiting_distillation";
+      state.thesis.status = "refuted";
+      state.decision = null;
+      writeState(state);
+
+      log("");
+      log("================================================");
+      log(`  Thesis REFUTED (iteration ${iteration})`);
+      log(`  R: ${R} | E: ${E} | C: ${C}`);
+      log("");
+      log("  Run /dialectic:dialectic-distill to produce");
+      log("  the refutation memo — knowing why it's wrong");
+      log("  is a conviction too.");
+      log("================================================");
+      process.exit(0);
     }
   }
 

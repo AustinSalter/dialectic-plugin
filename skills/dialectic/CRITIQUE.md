@@ -85,6 +85,7 @@ ELEVATE requires **E ≥ 0.4**. If the altitude appears wrong but E < 0.4, the c
 | CONTINUE | Evidence gaps exist, addressable with data | What specific data resolves it? |
 | CONCLUDE | Thesis robust at right altitude, no amputated counters | The bet + falsification trigger |
 | ELEVATE | Wrong altitude OR amputated counters (requires E ≥ 0.4) | Elevated thesis + what it preserves + what it resolves |
+| REJECT | Thesis refuted: a probe or counter breaks the core claim and no elevation rescues it | Refuting basis (which claims/evidence it rests on) + counter-thesis if one is visible |
 
 **CONCLUDE only when you can state:**
 - The bet: "X > Y because mechanism Z"
@@ -113,7 +114,7 @@ preservation:
   correctly_frames: [valuable framing to keep]
   must_retain: [non-negotiable elements]
 
-decision: [CONTINUE | CONCLUDE | ELEVATE]
+decision: [CONTINUE | CONCLUDE | ELEVATE | REJECT]
 
 # Include ONE of the following based on decision:
 
@@ -130,7 +131,13 @@ if_elevate:
   elevated_thesis: [what it's really trying to say]
   preserves: [from original]
   resolves: [what tension]
+
+if_reject:
+  refuting_basis: [the specific claims/evidence the refutation rests on]
+  counter_thesis: [the thesis the evidence actually supports — omit if none is visible]
 ```
+
+**REJECT is a success, not a failure.** A refuted thesis with a stated refuting basis is a finished piece of reasoning. If a counter-thesis is visible, write it to `counter_thesis` in state.json — the loop will re-enter once from it. If none is visible, the run ends as a refutation: distillation will produce a memo of why the thesis is wrong and what would resurrect it.
 
 ## Example: Stripe (After Expansion)
 
@@ -185,4 +192,4 @@ if_elevate:
 
 ## CRITICAL: Stop After Writing Decision
 
-After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, or `elevate`), and appending to `thesis-history.md`, **stop responding immediately**. Do not write anything else. Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. Your response ends here — the stop hook reads `state.json` and handles what comes next.
+After writing your critique output, updating `state.json` with the decision field (`continue`, `conclude`, `elevate`, or `reject`), and appending to `thesis-history.md`, **stop responding immediately**. Do not write anything else. Do not begin any next phase. Do not write transition headers. Do not set `loop` to any other value. Your response ends here — the stop hook reads `state.json` and handles what comes next.

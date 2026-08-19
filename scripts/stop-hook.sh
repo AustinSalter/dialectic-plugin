@@ -69,6 +69,10 @@ if [ -n "$DECISION" ] && [ "$DECISION" != "null" ]; then
       echo "Warrant gate: found $PROBE_COUNT 'probes:' block(s) in scratchpad.md but iteration is $ITERATION. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing." >&2
       exit 2
     fi
+    if { [ "$DECISION" = "reject" ] || [ "$DECISION" = "REJECT" ]; } && ! grep -q '^[[:space:]]*if_reject' "$SCRATCHPAD" 2>/dev/null; then
+      echo "Warrant gate: decision is reject but scratchpad.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again." >&2
+      exit 2
+    fi
   fi
   if [ "$LOOP" = "distillation" ] && { [ "$DECISION" = "conclude" ] || [ "$DECISION" = "CONCLUDE" ]; }; then
     PR_COUNT=$(grep -c '^[[:space:]]*probe_results:' "$SCRATCHPAD" 2>/dev/null)
@@ -246,6 +250,46 @@ if [ "$LOOP" = "reasoning" ]; then
         echo "================================================"
         exit 0
       fi
+    fi
+  fi
+
+  # Check for rejection — the thesis is refuted. Legal from iteration 1:
+  # floors prevent premature conclusion; premature death is the point.
+  if [ "$DECISION" = "reject" ] || [ "$DECISION" = "REJECT" ]; then
+    if wait_for_explorations; then
+      echo "Background exploration(s) completed while rejecting. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the REJECT decision." >&2
+      exit 2
+    fi
+
+    REJECT_PASSES=$(jq -r '.reject_passes // 0' "$STATE_FILE" 2>/dev/null)
+    COUNTER_THESIS=$(jq -r '.counter_thesis // ""' "$STATE_FILE" 2>/dev/null)
+
+    if [ -n "$COUNTER_THESIS" ] && [ "$COUNTER_THESIS" != "null" ] && [ "$REJECT_PASSES" -lt 1 ]; then
+      jq '.reject_passes = ((.reject_passes // 0) + 1) | .thesis.current = .counter_thesis | .counter_thesis = null | .iteration = 0 | .decision = null | .phase = "expansion"' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+      echo ""
+      echo "================================================"
+      echo "  REJECT — thesis refuted, counter-thesis offered"
+      echo "  Re-entering reasoning with the counter-thesis (re-loop 1/1)"
+      echo "================================================"
+
+      echo "The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in scratchpad.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped." >&2
+      exit 2
+    else
+      jq '.loop = "awaiting_distillation" | .thesis.status = "refuted" | .decision = null' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+      echo ""
+      echo "================================================"
+      echo "  Thesis REFUTED (iteration $ITERATION)"
+      echo "  R: $R | E: $E | C: $C"
+      echo ""
+      echo "  Run /dialectic:dialectic-distill to produce"
+      echo "  the refutation memo — knowing why it's wrong"
+      echo "  is a conviction too."
+      echo "================================================"
+      exit 0
     fi
   fi
 

@@ -26,6 +26,7 @@ Walk the scratchpad chronologically. Determine what survived:
 | `[EVIDENCE]` | Strength ≥ 3, still relevant to final thesis | Stale, contradicted, or irrelevant to final frame |
 | `[TENSION]` | Resolved with mechanism, or carried as open risk | Left hanging with no resolution attempt |
 | `[COUNTER]` | Addressed in Critique or Refutatio | Ignored entirely |
+| any marker | — | Killed by a REJECT's refuting_basis: record status `killed`, keep it in the spine |
 
 Harvest the Critique passes' preservation gates — "what must any elevation retain?" Those answers *are* the load-bearing claims.
 
@@ -40,6 +41,14 @@ Write spine to `.claude/dialectic/spine.yaml` (see Output Format below).
 - No survived claim depends on a superseded claim
 
 *If validation fails, the reasoning loop left gaps. Note them as open risks.*
+
+### Killed claims stay visible
+
+A claim with status `killed` must appear in the memo's refutatio with what killed it. Claims that die must stay visibly dead — a spine that silently drops its dead is lying about the fight.
+
+### Refutation memos
+
+If `thesis.status` is `"refuted"`, the memo's verdict is the refutation: state what the thesis claimed, the refuting basis (quoted from the spine), and what evidence would resurrect it. Same probes, same compression gate — a refutation memo is still a conviction memo.
 
 ## Distillation Probes
 

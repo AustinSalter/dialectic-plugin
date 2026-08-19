@@ -60,4 +60,48 @@ for (const impl of BOTH) {
     assert.equal(r.status, 2);
     assert.match(r.stderr, /Warrant gate:/);
   });
+
+  test(`[${impl}] reject with counter_thesis → re-loop: iteration 0, thesis swapped, reject_passes 1`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 2, decision: "reject", counter_thesis: "the opposite is true" });
+    writeScratchpad(sb, { probeBlocks: 2, extra: "if_reject:\n  refuting_basis: E2 contradicts C1\n" });
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 2);
+    assert.match(r.stdout, /REJECT/);
+    const s = readState(sb);
+    assert.equal(s.iteration, 0);
+    assert.equal(s.reject_passes, 1);
+    assert.equal(s.thesis.current, "the opposite is true");
+    assert.equal(s.phase, "expansion");
+    assert.equal(s.decision, null);
+  });
+
+  test(`[${impl}] reject without counter_thesis → refuted, awaiting_distillation, exit 0`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 2, decision: "reject" });
+    writeScratchpad(sb, { probeBlocks: 2, extra: "if_reject:\n  refuting_basis: E2 contradicts C1\n" });
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    const s = readState(sb);
+    assert.equal(s.loop, "awaiting_distillation");
+    assert.equal(s.thesis.status, "refuted");
+  });
+
+  test(`[${impl}] second reject with counter_thesis → no second re-loop, terminal refuted`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 2, decision: "reject", counter_thesis: "yet another", reject_passes: 1 });
+    writeScratchpad(sb, { probeBlocks: 2, extra: "if_reject:\n  refuting_basis: still broken\n" });
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    assert.equal(readState(sb).thesis.status, "refuted");
+  });
+
+  test(`[${impl}] reject without if_reject block in scratchpad → warrant-gated`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 2, decision: "reject" });
+    writeScratchpad(sb, { probeBlocks: 2 }); // no if_reject
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /Warrant gate:/);
+  });
 }

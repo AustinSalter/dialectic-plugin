@@ -83,7 +83,7 @@ Before writing new confidence values to state.json, append the current `thesis.c
 
 Run the critique protocol in `skills/dialectic/CRITIQUE.md` without abbreviation.
 
-Write decision to state.json `decision` field (lowercase: "continue", "conclude", or "elevate").
+Write decision to state.json `decision` field (lowercase: "continue", "conclude", "elevate", or "reject").
 
 Append the complete critique output — the probes yaml, preservation gate, and decision block — to `.claude/dialectic/scratchpad.md` before stopping. The stop hook will not honor a decision whose warrant is not in the scratchpad.
 
@@ -114,6 +114,7 @@ This applies to every decision:
 - **CONCLUDE**: Stop. The reasoning phase is complete.
 - **CONTINUE**: Stop. The hook increments the iteration and re-feeds.
 - **ELEVATE**: Stop. The hook re-feeds with the elevation prompt.
+- **REJECT**: Stop. The hook re-loops once on a counter-thesis, or ends the run as a refutation.
 
 **Do not write transition headers or begin any next phase.**
 
