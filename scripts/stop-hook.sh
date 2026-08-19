@@ -444,7 +444,7 @@ elif [ "$LOOP" = "distillation" ]; then
 
     # Preserve artifacts before cleanup
     OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
-    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history"]) | join(",")' "$STATE_FILE" 2>/dev/null)
+    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history","scratchpad","state","prompt"]) | join(",")' "$STATE_FILE" 2>/dev/null)
     SESSION_ID=$(jq -r '.session_id // "dialectic-unknown"' "$STATE_FILE" 2>/dev/null)
     SAVED_TO=$(preserve_artifacts "$STATE_DIR" "$OUTPUT_DIR" "$KEEP_ARTIFACTS" "$SESSION_ID")
     if [ -n "$SAVED_TO" ]; then

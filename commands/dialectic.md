@@ -59,7 +59,7 @@ Create the directory `.claude/dialectic/` and write `state.json`:
     "report_path": null
   },
   "output_dir": "<parsed or default .dialectic-output/>",
-  "keep_artifacts": ["memo", "spine", "history"]
+  "keep_artifacts": ["memo", "spine", "history", "scratchpad", "state", "prompt"]
 }
 ```
 

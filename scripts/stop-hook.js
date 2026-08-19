@@ -449,7 +449,7 @@ if (loop === "reasoning") {
 
     // Preserve artifacts before cleanup
     const outputDir = state.output_dir || ".dialectic-output/";
-    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history"];
+    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history", "scratchpad", "state", "prompt"];
     const sessionId = state.session_id || "dialectic-" + Date.now();
     const savedTo = preserveArtifacts(STATE_DIR, outputDir, keepArtifacts, sessionId);
     if (savedTo) {

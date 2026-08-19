@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { makeSandbox, writeState, writeScratchpad, runHook, readState, BOTH } from "./helpers.mjs";
+import { makeSandbox, writeState, writeScratchpad, writeArtifact, runHook, readState, BOTH } from "./helpers.mjs";
 
 for (const impl of BOTH) {
   test(`[${impl}] no state file → exit 0`, () => {
@@ -103,5 +103,24 @@ for (const impl of BOTH) {
     const r = runHook(sb, impl);
     assert.equal(r.status, 2);
     assert.match(r.stderr, /Warrant gate:/);
+  });
+
+  test(`[${impl}] distill conclude with no keep_artifacts in state → scratchpad preserved by default`, () => {
+    const sb = makeSandbox();
+    const st = { loop: "distillation", decision: "conclude",
+      distillation_iteration: 2, distillation_min: 2, distillation_max: 4 };
+    writeState(sb, st);
+    // remove keep_artifacts to exercise the default
+    const s = readState(sb); delete s.keep_artifacts;
+    writeFileSync(sb.statePath, JSON.stringify(s, null, 2));
+    writeScratchpad(sb, { probeBlocks: 3, extra: "probe_results:\n  trace: PASS\nprobe_results:\n  trace: PASS\n" });
+    writeArtifact(sb, "memo-draft.md", "# Memo\nThe bet: X > Y.\nFalsification: Z.\n");
+    writeArtifact(sb, "thesis-history.md", "## Iteration 1\n");
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    const out = join(sb.dir, ".dialectic-output", "dialectic-20260819T120000");
+    assert.ok(existsSync(join(out, "scratchpad.md")), "scratchpad.md preserved");
+    assert.ok(existsSync(join(out, "state.json")), "state.json preserved");
+    assert.ok(!existsSync(sb.stateDir), "state dir cleaned up");
   });
 }

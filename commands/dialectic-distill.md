@@ -25,7 +25,7 @@ If any are missing, report which and stop.
 
 Parse `$ARGUMENTS` for optional flags:
 - `--output=<dir>` — Directory for preserved artifacts (overrides state.json value, default: `.dialectic-output/`)
-- `--keep=<list>` — Comma-separated artifact names to preserve (overrides state.json value, default: `memo,spine,history`)
+- `--keep=<list>` — Comma-separated artifact names to preserve (overrides state.json value, default: `memo,spine,history,scratchpad,state,prompt`)
 - `--min-passes=N` — Minimum distillation passes (default: 2)
 - `--max-passes=N` — Maximum distillation passes (default: 4)
 
