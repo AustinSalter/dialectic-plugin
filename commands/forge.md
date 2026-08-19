@@ -10,7 +10,7 @@ You are executing the forge phase of a dialectic reasoning session. Follow this 
 ## Step 1: Validate Reasoning Artifacts
 
 Read `.claude/dialectic/state.json`. Check:
-- File must exist — if not, no reasoning session has been run. Tell the user to run `/dialectic:dialectic` first.
+- File must exist — if not, check the fallback below before concluding no session was run: a completed distillation may have cleaned up `.claude/dialectic/` after preserving to `.dialectic-output/`. Only if neither exists, tell the user to run `/dialectic:dialectic` first.
 - `loop` must be `"awaiting_distillation"` — if it's `"reasoning"`, the reasoning loop is still active. Tell the user to complete or cancel it first.
 - If `loop` is already `"forge"`, a forge synthesis is in progress. Resume it.
 
