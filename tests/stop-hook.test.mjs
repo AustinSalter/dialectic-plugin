@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync, utimesSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { makeSandbox, writeState, writeScratchpad, writeArtifact, runHook, readState, BOTH } from "./helpers.mjs";
 
@@ -122,5 +122,43 @@ for (const impl of BOTH) {
     assert.ok(existsSync(join(out, "scratchpad.md")), "scratchpad.md preserved");
     assert.ok(existsSync(join(out, "state.json")), "state.json preserved");
     assert.ok(!existsSync(sb.stateDir), "state dir cleaned up");
+  });
+
+  test(`[${impl}] reasoning conclude → checkpoint written before exit`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 3, decision: "conclude" });
+    writeScratchpad(sb, { probeBlocks: 3 });
+    writeArtifact(sb, "thesis-history.md", "## Iteration 1\n");
+    writeArtifact(sb, "prompt.md", "q");
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    const cp = join(sb.dir, ".dialectic-output", "dialectic-20260819T120000", "checkpoint");
+    for (const f of ["scratchpad.md", "thesis-history.md", "prompt.md", "state.json"])
+      assert.ok(existsSync(join(cp, f)), `${f} checkpointed`);
+  });
+
+  test(`[${impl}] malformed session_id → normalized at checkpoint`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 3, decision: "conclude", session_id: "dialectic-2026-07-06" });
+    writeScratchpad(sb, { probeBlocks: 3 });
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    assert.match(readState(sb).session_id, /^dialectic-\d{8}T\d{6}$/);
+  });
+
+  test(`[${impl}] stale state → archived to .dialectic-output/abandoned-*, state dir removed`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 2 });
+    writeScratchpad(sb, { probeBlocks: 2 });
+    // age the state file 3 hours
+    const old = new Date(Date.now() - 3 * 3600 * 1000);
+    utimesSync(sb.statePath, old, old);
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    assert.ok(!existsSync(sb.stateDir), "state dir removed");
+    const outDir = join(sb.dir, ".dialectic-output");
+    const abandoned = readdirSync(outDir).filter((d) => d.startsWith("abandoned-"));
+    assert.equal(abandoned.length, 1);
+    assert.ok(existsSync(join(outDir, abandoned[0], "scratchpad.md")));
   });
 }

@@ -32,15 +32,28 @@ if (!fs.existsSync(STATE_FILE)) {
   process.exit(0);
 }
 
+function tsStamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+function state0OutputDir() {
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, "utf8")).output_dir; } catch { return null; }
+}
+
 // Staleness guard: if state.json hasn't been modified in 2 hours,
 // the session is orphaned (e.g. terminal closed mid-session).
 // Allow the stop so the hook doesn't block every future conversation.
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 const stateAge = Date.now() - fs.statSync(STATE_FILE).mtimeMs;
 if (stateAge > STALE_THRESHOLD_MS) {
+  const outputDir = (state0OutputDir() || ".dialectic-output/").replace(/\/$/, "");
+  const archiveDir = path.join(outputDir, "abandoned-" + tsStamp());
+  fs.mkdirSync(archiveDir, { recursive: true });
+  fs.cpSync(STATE_DIR, archiveDir, { recursive: true });
+  fs.rmSync(STATE_DIR, { recursive: true, force: true });
   process.stderr.write(
-    `Dialectic state.json is stale (${Math.round(stateAge / 60000)} min old). ` +
-    `Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume.\n`
+    `Dialectic state was stale. Archived the abandoned session to ${archiveDir} and cleared the state dir. Start fresh with /dialectic:dialectic.\n`
   );
   process.exit(0);
 }
@@ -157,6 +170,23 @@ function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
   return sessionDir;
 }
 
+function checkpointArtifacts() {
+  const outputDir = (state.output_dir || ".dialectic-output/").replace(/\/$/, "");
+  let sessionId = state.session_id || "";
+  if (!/^dialectic-\d{8}T\d{6}$/.test(sessionId)) {
+    sessionId = "dialectic-" + tsStamp();
+    state.session_id = sessionId;
+    writeState(state);
+  }
+  const checkpointDir = path.join(outputDir, sessionId, "checkpoint");
+  fs.mkdirSync(checkpointDir, { recursive: true });
+  for (const f of ["scratchpad.md", "thesis-history.md", "prompt.md", "state.json"]) {
+    const src = path.join(STATE_DIR, f);
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(checkpointDir, f));
+  }
+  log(`  Checkpoint: ${checkpointDir}`);
+}
+
 // Wait barrier: before terminal decisions (CONCLUDE/ELEVATE/max-iterations),
 // wait for active background explorations to complete (up to 120s).
 // Returns true if new results arrived during the wait.
@@ -234,6 +264,7 @@ if (loop === "reasoning") {
         // REASONING COMPLETE — exit cleanly, user invokes distillation separately
         state.loop = "awaiting_distillation";
         writeState(state);
+        checkpointArtifacts();
         log("");
         log("================================================");
         log("  Reasoning loop complete!");
@@ -283,6 +314,7 @@ if (loop === "reasoning") {
       state.thesis.status = "refuted";
       state.decision = null;
       writeState(state);
+      checkpointArtifacts();
 
       log("");
       log("================================================");
@@ -374,6 +406,7 @@ if (loop === "reasoning") {
     } else {
       state.loop = "awaiting_distillation";
       writeState(state);
+      checkpointArtifacts();
       log("");
       log("================================================");
       log(`  Max iterations reached (${iteration}/${maxIterations})`);
@@ -526,6 +559,7 @@ if (loop === "reasoning") {
       // VALIDATED, CHALLENGED, or FRACTURED at max passes — transition to awaiting_distillation
       state.loop = "awaiting_distillation";
       writeState(state);
+      checkpointArtifacts();
 
       log("");
       log("================================================");
@@ -594,6 +628,7 @@ if (loop === "reasoning") {
     state.synthesis.forge_run = true;
     state.synthesis.forge_path = ".claude/dialectic/forge_report.md";
     writeState(state);
+    checkpointArtifacts();
 
     log(`  Forge report: .claude/dialectic/forge_report.md`);
     log("");

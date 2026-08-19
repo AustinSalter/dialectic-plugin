@@ -22,7 +22,12 @@ fi
 # Allow the stop so the hook doesn't block every future conversation.
 STALE_THRESHOLD_MIN=120
 if [ "$(find "$STATE_FILE" -mmin +${STALE_THRESHOLD_MIN} 2>/dev/null)" ]; then
-  echo "Dialectic state.json is stale (>${STALE_THRESHOLD_MIN} min). Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume." >&2
+  OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
+  ARCHIVE_DIR="${OUTPUT_DIR%/}/abandoned-$(date +%Y%m%dT%H%M%S)"
+  mkdir -p "$ARCHIVE_DIR"
+  cp -R "$STATE_DIR/." "$ARCHIVE_DIR/"
+  rm -rf "$STATE_DIR"
+  echo "Dialectic state was stale (>${STALE_THRESHOLD_MIN} min). Archived the abandoned session to $ARCHIVE_DIR and cleared the state dir. Start fresh with /dialectic:dialectic." >&2
   exit 0
 fi
 
@@ -154,6 +159,26 @@ MANIFEST_EOF
   echo "$session_dir"
 }
 
+checkpoint_artifacts() {
+  local output_dir session_id checkpoint_dir
+  output_dir=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
+  session_id=$(jq -r '.session_id // ""' "$STATE_FILE" 2>/dev/null)
+  case "$session_id" in
+    dialectic-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+    *)
+      session_id="dialectic-$(date +%Y%m%dT%H%M%S)"
+      jq --arg sid "$session_id" '.session_id = $sid' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
+      ;;
+  esac
+  checkpoint_dir="${output_dir%/}/$session_id/checkpoint"
+  mkdir -p "$checkpoint_dir"
+  for f in scratchpad.md thesis-history.md prompt.md state.json; do
+    [ -f "$STATE_DIR/$f" ] && cp "$STATE_DIR/$f" "$checkpoint_dir/$f"
+  done
+  echo "  Checkpoint: $checkpoint_dir"
+}
+
 # Wait barrier: before terminal decisions, wait for active background
 # explorations to complete (up to 120s). Returns 0 if new results arrived.
 wait_for_explorations() {
@@ -239,6 +264,7 @@ if [ "$LOOP" = "reasoning" ]; then
         # REASONING COMPLETE — exit cleanly, user invokes distillation separately
         jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
         mv "$STATE_FILE.tmp" "$STATE_FILE"
+        checkpoint_artifacts
         echo ""
         echo "================================================"
         echo "  Reasoning loop complete!"
@@ -279,6 +305,7 @@ if [ "$LOOP" = "reasoning" ]; then
     else
       jq '.loop = "awaiting_distillation" | .thesis.status = "refuted" | .decision = null' "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
+      checkpoint_artifacts
 
       echo ""
       echo "================================================"
@@ -375,6 +402,7 @@ if [ "$LOOP" = "reasoning" ]; then
     else
       jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
+      checkpoint_artifacts
       echo ""
       echo "================================================"
       echo "  Max iterations reached ($ITERATION/$MAX_ITERATIONS)"
@@ -510,6 +538,7 @@ elif [ "$LOOP" = "holdout" ]; then
       # VALIDATED, CHALLENGED, or FRACTURED at max passes — transition to awaiting_distillation
       jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
+      checkpoint_artifacts
 
       echo ""
       echo "================================================"
@@ -567,6 +596,7 @@ elif [ "$LOOP" = "forge" ]; then
     # Mark forge as complete but do NOT clean up — user may still run distill
     jq '.loop = "awaiting_distillation" | .synthesis.forge_run = true | .synthesis.forge_path = ".claude/dialectic/forge_report.md"' "$STATE_FILE" > "$STATE_FILE.tmp"
     mv "$STATE_FILE.tmp" "$STATE_FILE"
+    checkpoint_artifacts
 
     echo "  Forge report: .claude/dialectic/forge_report.md"
     echo ""
