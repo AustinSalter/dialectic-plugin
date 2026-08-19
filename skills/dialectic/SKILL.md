@@ -113,7 +113,7 @@ Single scalar confidence conflates reasoning quality, evidence quality, and conc
 - **E (Evidence)**: Is evidence complete? (0.0-1.0)
 - **C (Conclusion)**: How certain given R and E? (0.0-1.0)
 
-**Composite**: `(R + E + C) / 3` — NOT multiplicative.
+Verdict language keys off the lowest of R, E, C — a chain is as strong as its weakest dimension; never average the three.
 
 See [COMPRESSION.md](COMPRESSION.md) and [CRITIQUE.md](CRITIQUE.md) for details.
 

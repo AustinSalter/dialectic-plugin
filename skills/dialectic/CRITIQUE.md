@@ -29,7 +29,7 @@ Run all six against the framed thesis:
 | Implementation | Does this assume rational response? | Perverse/irrational response |
 | Survival | What observation would have killed this thesis this round — and did you go look for it? | Unfalsifiable drift |
 
-R rises only in a round where a kill was attempted and failed. No attempt, no credit.
+R rises only in a round where a kill was attempted and the thesis survived it. No attempt, no credit.
 
 **For domain-specific probes:** See patterns/{domain}.md
 

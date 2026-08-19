@@ -77,9 +77,9 @@ The numbers stay out of the memo; they bound its verbs. Conviction cannot outrun
 
 | Band (lowest of R, E, C) | Permitted language |
 |---|---|
-| < 0.5 | Conviction reads **Low**; "hold provisionally" language only — no ADOPT, no conviction verbs |
-| 0.5–0.7 | Conviction reads **Med**; "medium conviction," and ADOPT only with stated release conditions |
-| > 0.7 | Conviction reads **High**; conviction verdicts permitted |
+| lowest < 0.5 | Conviction reads **Low**; "hold provisionally" language only — no ADOPT, no conviction verbs |
+| 0.5 ≤ lowest < 0.7 | Conviction reads **Med**; "medium conviction," and ADOPT only with stated release conditions |
+| lowest ≥ 0.7 | Conviction reads **High**; conviction verdicts permitted |
 
 If the felt conviction disagrees with the numbers, the memo says so in a sentence — it may not outrank them.
 

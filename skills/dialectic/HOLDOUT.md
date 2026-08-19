@@ -149,7 +149,7 @@ Write your report in EXACTLY this format to the output file:
 | R (Reasoning)  | X.XX | X.XX | [reason for adjustment or "no change"] |
 | E (Evidence)   | X.XX | X.XX | [reason for adjustment or "no change"] |
 | C (Conclusion) | X.XX | X.XX | [reason for adjustment or "no change"] |
-| **Composite**  | X.XX | X.XX | |
+| **Lowest**     | X.XX | X.XX | [the minimum of R, E, C — never their average] |
 
 ## Pass 1: Structural Audit
 
