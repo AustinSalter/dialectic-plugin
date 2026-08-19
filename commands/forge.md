@@ -21,6 +21,8 @@ Required artifacts (all must exist in `.claude/dialectic/`):
 
 If any are missing, report which and stop.
 
+**Fallback for concluded distillation**: If `.claude/dialectic/` does not exist (distillation already concluded and cleaned up), fall back to the newest session under `.dialectic-output/`: `ls -td .dialectic-output/*/ | head -1`. Read `scratchpad.md`, `state.json`, and `thesis-history.md` from there, and write `forge-draft.md` and `forge_report.md` into that same session directory instead of `.claude/dialectic/`. Say which directory you are using.
+
 ## Step 2: Parse Arguments and Initialize
 
 Parse `$ARGUMENTS` for optional flags:
