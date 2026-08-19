@@ -14,7 +14,7 @@ from pathlib import Path
 def text_of(content):
     if isinstance(content, str):
         return content, []
-    texts, tools = [], []
+    texts, tools, saw_tool_result = [], [], False
     if isinstance(content, list):
         for block in content:
             if not isinstance(block, dict):
@@ -24,7 +24,9 @@ def text_of(content):
             elif block.get("type") == "tool_use":
                 tools.append(block.get("name", "?"))
             elif block.get("type") == "tool_result":
-                return None, []  # tool-result carrier turn, not a human turn
+                saw_tool_result = True
+    if saw_tool_result and not any(t.strip() for t in texts):
+        return None, []  # pure tool-result carrier turn
     return "\n".join(t for t in texts if t.strip()), tools
 
 

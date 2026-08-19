@@ -28,3 +28,17 @@ test("export-session extracts user and assistant turns, skips noise", () => {
   assert.ok(!md.includes("noise"));      // non-message entries skipped
   assert.match(md, /claude-opus-4-8/);   // model recorded once in header
 });
+
+test("export-session keeps text from mixed text+tool_result turns", () => {
+  const sb = makeSandbox();
+  const jsonl = [
+    { type: "user", timestamp: "2026-07-07T02:17:00Z", message: { role: "user", content: [{ type: "text", text: "mixed-turn text survives" }, { type: "tool_result", content: "ok" }] } },
+  ].map((e) => JSON.stringify(e)).join("\n");
+  const src = join(sb.dir, "session.jsonl");
+  writeFileSync(src, jsonl);
+  const out = join(sb.dir, "out.md");
+  const r = spawnSync("python3", [join(REPO, "scripts", "export-session.py"), src, out], { encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  const md = readFileSync(out, "utf8");
+  assert.match(md, /mixed-turn text survives/);  // text from mixed turn is preserved
+});
