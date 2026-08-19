@@ -85,6 +85,8 @@ Run the critique protocol in `skills/dialectic/CRITIQUE.md` without abbreviation
 
 Write decision to state.json `decision` field (lowercase: "continue", "conclude", or "elevate").
 
+Append the complete critique output — the probes yaml, preservation gate, and decision block — to `.claude/dialectic/scratchpad.md` before stopping. The stop hook will not honor a decision whose warrant is not in the scratchpad.
+
 ## Step 5: Update Thesis History
 
 **Always write thesis history before checking termination.** Complete thesis history is required before concluding.

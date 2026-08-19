@@ -64,6 +64,8 @@ On pass 2+: Revise based on previous probe findings, re-run probes in adversaria
 
 The memo target format is defined in `skills/dialectic/SYNTHESIS.md`.
 
+Each pass, append a `probe_results:` yaml block to `.claude/dialectic/scratchpad.md` — all five probes, per-probe verdict, and the quoted memo text each verdict rests on. The stop hook will not conclude distillation without one block per pass.
+
 ## CRITICAL: One Pass Per Response
 
 Each distillation pass is a separate response. After completing one pass, write your decision to `state.json` and **stop responding**. The stop hook enforces the minimum pass requirement and re-feeds you for the next pass.

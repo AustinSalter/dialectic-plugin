@@ -78,6 +78,31 @@ function blockStop(reason) {
   process.exit(2);
 }
 
+const SCRATCHPAD = path.join(STATE_DIR, "scratchpad.md");
+
+function countBlocks(re) {
+  try {
+    return (fs.readFileSync(SCRATCHPAD, "utf8").match(re) || []).length;
+  } catch { return 0; }
+}
+
+// Warrant gate: a decision is only honored if its reasoning was externalized.
+if (decision) {
+  if (loop === "reasoning") {
+    const n = countBlocks(/^[ \t]*probes:/gm);
+    if (n < iteration) {
+      blockStop(`Warrant gate: found ${n} 'probes:' block(s) in scratchpad.md but iteration is ${iteration}. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing.`);
+    }
+  }
+  if (loop === "distillation" && decision === "conclude") {
+    const n = countBlocks(/^[ \t]*probe_results:/gm);
+    const distIter = state.distillation_iteration || 1;
+    if (n < distIter) {
+      blockStop(`Warrant gate: found ${n} 'probe_results:' block(s) in scratchpad.md but distillation pass is ${distIter}. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/scratchpad.md, then stop again.`);
+    }
+  }
+}
+
 // Artifact name → filename mapping
 const ARTIFACT_MAP = {
   memo: "memo-final.md",

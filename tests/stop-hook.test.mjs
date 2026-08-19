@@ -40,4 +40,24 @@ for (const impl of BOTH) {
     assert.equal(r.status, 2);
     assert.match(r.stdout, /ELEVATE blocked — evidence gate failed/);
   });
+
+  test(`[${impl}] warrant gate: decision without probe blocks → blocked`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 3, decision: "conclude" });
+    writeScratchpad(sb, { probeBlocks: 2 }); // one short
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /Warrant gate:/);
+    assert.equal(readState(sb).loop, "reasoning"); // no transition happened
+  });
+
+  test(`[${impl}] warrant gate: distillation conclude without probe_results → blocked`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { loop: "distillation", decision: "conclude",
+      distillation_iteration: 2, distillation_min: 2, distillation_max: 4 });
+    writeScratchpad(sb, { probeBlocks: 3 }); // reasoning probes, but no probe_results:
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /Warrant gate:/);
+  });
 }

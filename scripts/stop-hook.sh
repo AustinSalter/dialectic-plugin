@@ -58,6 +58,28 @@ else
   C="$LEGACY"
 fi
 
+SCRATCHPAD="$STATE_DIR/scratchpad.md"
+
+# Warrant gate: a decision is only honored if its reasoning was externalized.
+if [ -n "$DECISION" ] && [ "$DECISION" != "null" ]; then
+  if [ "$LOOP" = "reasoning" ]; then
+    PROBE_COUNT=$(grep -c '^[[:space:]]*probes:' "$SCRATCHPAD" 2>/dev/null)
+    PROBE_COUNT=${PROBE_COUNT:-0}
+    if [ "$PROBE_COUNT" -lt "$ITERATION" ]; then
+      echo "Warrant gate: found $PROBE_COUNT 'probes:' block(s) in scratchpad.md but iteration is $ITERATION. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing." >&2
+      exit 2
+    fi
+  fi
+  if [ "$LOOP" = "distillation" ] && { [ "$DECISION" = "conclude" ] || [ "$DECISION" = "CONCLUDE" ]; }; then
+    PR_COUNT=$(grep -c '^[[:space:]]*probe_results:' "$SCRATCHPAD" 2>/dev/null)
+    PR_COUNT=${PR_COUNT:-0}
+    if [ "$PR_COUNT" -lt "$DIST_ITER" ]; then
+      echo "Warrant gate: found $PR_COUNT 'probe_results:' block(s) in scratchpad.md but distillation pass is $DIST_ITER. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/scratchpad.md, then stop again." >&2
+      exit 2
+    fi
+  fi
+fi
+
 # Artifact name → filename mapping (function for bash 3.2 compatibility)
 artifact_filename() {
   case "$1" in
