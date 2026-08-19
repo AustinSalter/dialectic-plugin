@@ -17,6 +17,10 @@ Not what it claims—what concern motivates it.
 - "Adopt probable cause" → student privacy rights
 - "Enter this market" → growth / competitive position
 
+**What are the rival hypotheses?**
+
+Write three working hypotheses before searching: two that answer the question and one that denies its premise ("there is no X here"; "keep the status quo"). Every search serves all three until one dies by evidence, not by neglect. A frame that was never rivaled was never tested.
+
 **What altitude should we operate at?**
 
 | Level | Symptom | Example |
@@ -52,6 +56,7 @@ If you cannot list 3+ concrete steps, the thesis is **TOO ABSTRACT** even if it 
 ```yaml
 frame:
   protecting: [what concern motivates thesis]
+  hypotheses: [two that answer the question, one that denies its premise]
   altitude: [TOO_GRANULAR | RIGHT_LEVEL | TOO_ABSTRACT]
   altitude_adjustment: [if not RIGHT_LEVEL, what level should it be?]
   domain: [domain name or "general"]
@@ -83,7 +88,7 @@ Gather evidence *within the selected frame*.
 
 Read in flow, not in extraction mode.
 
-As you read, be alert to four things. Emit markers when you notice them. Don't hunt for them.
+As you read, be alert to five things. Emit markers when you notice them. Don't hunt for them.
 
 **Position.** Where does this source sit?
 - `[PRIMARY]` — original assertion, original data, first to say it
@@ -99,6 +104,8 @@ Five downstream sources are one source. One primary against four downstream is n
 
 **Stitch points.** When this source connects to one you've already read — bridges a gap, resolves a tension, sharpens a contradiction — name it as it happens: `[BRIDGE: A→B]`. The non-obvious findings live in the joins, not in any single source. If your output is converging on the obvious, you're missing the stitches.
 
+**Absence and provenance.** A summarizer's silence is testimony about the summary, not about the source. Never write "the source doesn't mention X" off a digest or a skim — an absence claim requires a targeted fetch that searched for X and missed, and until it has one it is a `[QUESTION]`, not `[EVIDENCE]`. Silence counts as evidence only when the source had reason to speak. Carry the citation inside the marker: an `[EVIDENCE]` without its source is a rumor. If no fetch was possible at all, say so — the whole pass is then training-data testimony.
+
 **Reading heuristics:**
 - Read in the order fetched. Earlier sources frame later ones.
 - Don't restart your reasoning per source. Carry it.
@@ -108,7 +115,6 @@ Five downstream sources are one source. One primary against four downstream is n
 - Budget 3-5 fetches per expansion pass
 - Mark search-sourced evidence with `[EVIDENCE:web]` vs training-data evidence with `[EVIDENCE:prior]`
 - Note what you searched for but couldn't find
-- If no fetch is possible, state this so the user knows evidence is from training data only
 
 **What this is not**: Not a per-source extraction schema. Not a checklist run on each fetch. Not a parser. A way of reading.
 
@@ -124,6 +130,7 @@ Five downstream sources are one source. One primary against four downstream is n
 ```yaml
 frame:
   protecting: [concern]
+  hypotheses: [H1, H2, null-frame]
   altitude: [level]
   domain: [domain]
   probes_to_run: [list]
@@ -158,6 +165,7 @@ not_yet_investigated:
 ```yaml
 frame:
   protecting: Investment in payments company
+  hypotheses: [docs/DX are the moat, integration lock-in is the moat, no durable moat — payments commoditizes]
   altitude: TOO_GRANULAR (features, not structure)
   altitude_adjustment: Should be "developer adoption → switching costs → infrastructure moat"
   domain: Infrastructure
@@ -183,6 +191,7 @@ frame:
 ```yaml
 frame:
   protecting: Investment in payments company
+  hypotheses: [docs/DX are the moat (weakened by copyability), integration lock-in (live), no durable moat (live)]
   altitude: TOO_GRANULAR → RIGHT_LEVEL needed
   domain: Infrastructure
   probes_to_run: [decision_maker, switching_cost, platform_vs_product, copyability]

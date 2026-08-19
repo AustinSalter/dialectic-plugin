@@ -82,7 +82,7 @@ In expansion passes, aim for:
 - At least one `[TENSION]` — find conflicting evidence
 - Position markers on every primary or downstream source
 - At least one stitch marker — non-obvious findings live in the joins
-- Specific `[EVIDENCE]` with sources when available
+- Specific `[EVIDENCE]` carrying its source — the citation rides inside the marker
 
 If you have ten sources and zero stitch markers, you're reading in parallel, not together. Re-read.
 
@@ -96,3 +96,4 @@ When compressing marked content:
 5. **Group sources by position before counting evidence.** N downstream sources of one primary claim is one piece of evidence, not N.
 6. **Stitch markers outrank single-source findings.** A `[BRIDGE: A→B]` that holds is more compelling than three sources independently saying the same thing.
 7. **Aligned-incentive primary sources need a non-aligned corroborator** before their load-bearing claims become validated insights.
+8. **A claim inherits its source or loses standing.** `[EVIDENCE:web]` without its URL compresses at strength ≤ 2, and compression copies the source forward with the claim.

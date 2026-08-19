@@ -29,12 +29,18 @@ Rate each claim's evidence:
 
 Claims rated 1-2 are evidence gaps.
 
+**Diagnosticity.** Weigh evidence by what it rules out. A finding consistent with every live hypothesis moves no confidence, however strong it sounds — name which of the frame's rival hypotheses each finding kills; one that kills none is background, not support.
+
+**Provenance carries.** Each `[EVIDENCE]` compresses to a quote *and* its source — URL, document, or `prior` for training data — and both go into state.json `evidence.supporting` / `evidence.challenging` as `{quote, source}`. Distillation cites what compression carried. An atom that arrives sourceless rates ≤ 2 and cannot validate an insight.
+
 ## Output Format (YAML)
 
 ```yaml
 insights:
   - claim: "..."
-    evidence: ["..."]
+    evidence:
+      - quote: "..."
+        source: "..."   # URL, document, or "prior"
     counters_addressed: ["..."]
     evidence_rating: [1-5]
 
