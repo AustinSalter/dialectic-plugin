@@ -34,8 +34,8 @@ The rule survives; the name no longer runs in the probe.
 
 Scouted in the 2026-08-19 curation audit and not adopted; each grounds a rule the corpus already holds.
 
-- **Mill, *On Liberty* (1859), ch. 2.** Grounds the refutatio test the corpus already states more sharply: would a smart opponent feel their best argument was represented?
-- **Platt, "Strong Inference," *Science* (1964).** Fetch the observation that excludes a live hypothesis — Chamberlin composed with Popper, both already in force. Declined as a third citation for one move.
+- **Mill, *On Liberty* (1859), ch. 2.** Grounds the refutatio test the corpus already states more sharply — would a smart opponent feel their best argument was represented? `SYNTHESIS.md`.
+- **Platt, "Strong Inference," *Science* (1964).** The crucial experiment: CONTINUE must name the specific data that resolves the gap, so a search discriminates between live hypotheses instead of accumulating support. `CRITIQUE.md`, decision table. Declined as a rule of its own — the requirement is already written.
 - **Keynes, *A Treatise on Probability* (1921), ch. 6.** E measures weight of evidence, not balance; read that way, `COMPRESSION.md`'s `contradicting evidence → E − 0.15` runs backwards. Declined for v1 because the current semantics work in the forensic record, and flagged as a v2 repair.
 
 One tradition in force has no line here on purpose: the adversarial steelman in `HOLDOUT.md` Pass 2 is modern practice with no canonical text, and attaching a name to it would be the erudition, not the omission.

@@ -60,8 +60,6 @@ This signals the analysis could not reach confident conclusion. No text after th
 - "It depends" (specify what it depends on)
 - "This is complex" (complexity is why you're being asked)
 
-Sources: RESOURCES.md
-
 ## Example Structure
 
 ```markdown
