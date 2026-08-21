@@ -232,3 +232,20 @@ for (const impl of BOTH) {
     assert.equal(readState(sb).loop, "distillation", "loop still distillation");
   });
 }
+
+// js-only: mkdirSync(archiveDir) used to sit outside the try/catch, so an
+// unwritable/blocked output_dir parent crashed with an uncaught exception
+// (exit 1) instead of degrading gracefully like the bash twin.
+test("[js] stale + archive-setup failure (blocked output_dir parent) → exit 0, graceful message, state dir left in place", () => {
+  const sb = makeSandbox();
+  // Make "blocker" an existing regular file so mkdirSync(recursive) under it throws ENOTDIR.
+  writeFileSync(join(sb.dir, "blocker"), "not a directory");
+  writeState(sb, { iteration: 2, output_dir: "blocker/nested/" });
+  writeScratchpad(sb, { probeBlocks: 2 });
+  const old = new Date(Date.now() - 3 * 3600 * 1000);
+  utimesSync(sb.statePath, old, old);
+  const r = runHook(sb, "js");
+  assert.equal(r.status, 0);
+  assert.match(r.stderr, /archiving failed — leaving \.claude\/dialectic in place/);
+  assert.ok(existsSync(sb.stateDir), "state dir left in place after archive-setup failure");
+});

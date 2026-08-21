@@ -49,8 +49,8 @@ const stateAge = Date.now() - fs.statSync(STATE_FILE).mtimeMs;
 if (stateAge > STALE_THRESHOLD_MS) {
   const outputDir = (state0OutputDir() || ".dialectic-output/").replace(/\/$/, "");
   const archiveDir = path.join(outputDir, "abandoned-" + tsStamp());
-  fs.mkdirSync(archiveDir, { recursive: true });
   try {
+    fs.mkdirSync(archiveDir, { recursive: true });
     fs.cpSync(STATE_DIR, archiveDir, { recursive: true });
     fs.rmSync(STATE_DIR, { recursive: true, force: true });
     process.stderr.write(

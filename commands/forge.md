@@ -21,7 +21,7 @@ Required artifacts (all must exist in `.claude/dialectic/`):
 
 If any are missing, report which and stop.
 
-**Fallback for concluded distillation**: If `.claude/dialectic/` does not exist (distillation already concluded and cleaned up), find the newest preserved session: `ls -td .dialectic-output/*/ | head -1`. The forge loop is stop-hook-driven off `.claude/dialectic/state.json` — reasoning in place under `.dialectic-output/` gives the hook nothing to enforce. Restore the session instead: `mkdir -p .claude/dialectic && cp <session>/scratchpad.md <session>/state.json <session>/thesis-history.md <session>/prompt.md .claude/dialectic/`. Then continue with the normal forge initialization in Step 4 below, on the restored state, as if `.claude/dialectic/` had existed all along. forge-conclude's existing preservation logic will re-preserve to this same session directory. Say which session you restored from.
+**Fallback for concluded distillation**: If `.claude/dialectic/` does not exist (distillation already concluded and cleaned up), find the newest preserved session: `ls -td .dialectic-output/*/ | head -1`. The forge loop is stop-hook-driven off `.claude/dialectic/state.json` — reasoning in place under `.dialectic-output/` gives the hook nothing to enforce. Restore the session instead: `mkdir -p .claude/dialectic && cp <session>/scratchpad.md <session>/state.json <session>/thesis-history.md <session>/prompt.md .claude/dialectic/`. Then continue from Step 2 (argument parsing) as normal — the restored state carries the original session_id, so later preservation lands in the same session directory. Say which session you restored from.
 
 ## Step 2: Parse Arguments and Initialize
 
