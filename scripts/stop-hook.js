@@ -50,11 +50,17 @@ if (stateAge > STALE_THRESHOLD_MS) {
   const outputDir = (state0OutputDir() || ".dialectic-output/").replace(/\/$/, "");
   const archiveDir = path.join(outputDir, "abandoned-" + tsStamp());
   fs.mkdirSync(archiveDir, { recursive: true });
-  fs.cpSync(STATE_DIR, archiveDir, { recursive: true });
-  fs.rmSync(STATE_DIR, { recursive: true, force: true });
-  process.stderr.write(
-    `Dialectic state was stale. Archived the abandoned session to ${archiveDir} and cleared the state dir. Start fresh with /dialectic:dialectic.\n`
-  );
+  try {
+    fs.cpSync(STATE_DIR, archiveDir, { recursive: true });
+    fs.rmSync(STATE_DIR, { recursive: true, force: true });
+    process.stderr.write(
+      `Dialectic state was stale. Archived the abandoned session to ${archiveDir} and cleared the state dir. Start fresh with /dialectic:dialectic.\n`
+    );
+  } catch (e) {
+    process.stderr.write(
+      "Dialectic state is stale but archiving failed — leaving .claude/dialectic in place. Archive it manually.\n"
+    );
+  }
   process.exit(0);
 }
 
@@ -469,6 +475,13 @@ if (loop === "reasoning") {
   }
 
   if (decision === "conclude") {
+    // No-memo gate: distillation cannot conclude without a draft or final memo.
+    const draftExists = fs.existsSync(path.join(STATE_DIR, "memo-draft.md"));
+    const finalExists = fs.existsSync(path.join(STATE_DIR, "memo-final.md"));
+    if (!draftExists && !finalExists) {
+      blockStop("Distillation cannot conclude — no memo-draft.md exists. Write the memo draft per skills/dialectic/DISTILLATION.md, keep decision as conclude, and stop again.");
+    }
+
     // Promotion check: the memo must carry its commitments (SYNTHESIS.md spec).
     const draftCheck = path.join(STATE_DIR, "memo-draft.md");
     if (fs.existsSync(draftCheck)) {

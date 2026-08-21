@@ -202,4 +202,33 @@ for (const impl of BOTH) {
     const r = runHook(sb, impl);
     assert.equal(r.status, 0);
   });
+
+  test(`[${impl}] corrupt state.json aged stale → exit 0, archived under default output dir, corrupt file byte-identical, state dir removed`, () => {
+    const sb = makeSandbox();
+    const corrupt = "{ this is not valid json, and stale too";
+    writeFileSync(sb.statePath, corrupt);
+    const old = new Date(Date.now() - 3 * 3600 * 1000);
+    utimesSync(sb.statePath, old, old);
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    assert.ok(!existsSync(sb.stateDir), "state dir removed");
+    const outDir = join(sb.dir, ".dialectic-output");
+    const abandoned = readdirSync(outDir).filter((d) => d.startsWith("abandoned-"));
+    assert.equal(abandoned.length, 1, "archived under default .dialectic-output/abandoned-* despite corrupt state");
+    const archivedState = readFileSync(join(outDir, abandoned[0], "state.json"), "utf8");
+    assert.equal(archivedState, corrupt, "corrupt file preserved byte-identical in archive");
+  });
+
+  test(`[${impl}] distill conclude at floor, probes satisfied, no memo files at all → blocked, state dir intact, loop unchanged`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { loop: "distillation", decision: "conclude",
+      distillation_iteration: 2, distillation_min: 2, distillation_max: 4 });
+    writeScratchpad(sb, { probeBlocks: 3, extra: "probe_results:\n  t: PASS\nprobe_results:\n  t: PASS\n" });
+    // no memo-draft.md and no memo-final.md written
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /no memo-draft\.md/);
+    assert.ok(existsSync(sb.stateDir), "state dir still present");
+    assert.equal(readState(sb).loop, "distillation", "loop still distillation");
+  });
 }

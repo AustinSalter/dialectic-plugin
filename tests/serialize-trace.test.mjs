@@ -79,3 +79,24 @@ test("unicode arrow (→) in state-annotated marker extracts, same as ASCII ->",
   assert.match(summary, /A conflicted with B/);
   assert.match(summary, /state: resolved/);
 });
+
+test("mid-line stitch on a continuation line does not truncate the enclosing marker body", () => {
+  const { summary } = serialize(
+    "[EVIDENCE] First line of evidence.\n" +
+      "Deepest support yet. [BRIDGE: a→b] the bridge text\n" +
+      "Third continuation line here.\n\n" +
+      "probes:\n  x: y\n"
+  );
+  // The sentence preceding the mid-line stitch survives in the marker body.
+  assert.match(summary, /Deepest support yet/);
+  // The stitch is still inventoried.
+  assert.match(summary, /- BRIDGE: a→b — the bridge text/);
+  // The line after the mid-line stitch is still part of the body, not orphaned.
+  assert.match(summary, /Third continuation line here/);
+  // All three lines belong to the same EVIDENCE bullet.
+  const section = summary.split("### [EVIDENCE] markers")[1].split("###")[0];
+  assert.match(
+    section,
+    /First line of evidence\. Deepest support yet\. \[BRIDGE: a→b\] the bridge text Third continuation line here\./
+  );
+});

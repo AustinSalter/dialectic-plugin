@@ -33,6 +33,12 @@ const MARKER_HEAD = new RegExp(
 // Stitch heads are searched anywhere on a line (not just at column 0) because
 // they can appear mid-sentence, at the tail of another marker's body line.
 const STITCH_HEAD = new RegExp("\\[(" + STITCH_TYPES.join("|") + "):\\s*([^\\]]+)\\]\\s*(.*)$");
+// Anchored variant used only to decide where a marker's BODY ends: a stitch
+// terminates the body only when it starts the line (after optional leading
+// whitespace). A stitch riding at the tail of prose is inventoried by
+// extractStitches (via the unanchored STITCH_HEAD above) but does not cut
+// off the marker body it's embedded in.
+const STITCH_HEAD_ANCHORED = new RegExp("^\\s*\\[(" + STITCH_TYPES.join("|") + "):");
 
 function stripPositionTags(text) {
   const tags = [];
@@ -47,7 +53,7 @@ function stripPositionTags(text) {
 }
 
 function isHeadLine(line) {
-  return MARKER_HEAD.test(line) || STITCH_HEAD.test(line);
+  return MARKER_HEAD.test(line) || STITCH_HEAD_ANCHORED.test(line);
 }
 
 function readFileOr(filepath, fallback) {

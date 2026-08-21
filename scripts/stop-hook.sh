@@ -23,11 +23,15 @@ fi
 STALE_THRESHOLD_MIN=120
 if [ "$(find "$STATE_FILE" -mmin +${STALE_THRESHOLD_MIN} 2>/dev/null)" ]; then
   OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
+  OUTPUT_DIR=${OUTPUT_DIR:-.dialectic-output/}
   ARCHIVE_DIR="${OUTPUT_DIR%/}/abandoned-$(date +%Y%m%dT%H%M%S)"
   mkdir -p "$ARCHIVE_DIR"
-  cp -R "$STATE_DIR/." "$ARCHIVE_DIR/"
-  rm -rf "$STATE_DIR"
-  echo "Dialectic state was stale (>${STALE_THRESHOLD_MIN} min). Archived the abandoned session to $ARCHIVE_DIR and cleared the state dir. Start fresh with /dialectic:dialectic." >&2
+  if cp -R "$STATE_DIR/." "$ARCHIVE_DIR/"; then
+    rm -rf "$STATE_DIR"
+    echo "Dialectic state was stale (>${STALE_THRESHOLD_MIN} min). Archived the abandoned session to $ARCHIVE_DIR and cleared the state dir. Start fresh with /dialectic:dialectic." >&2
+  else
+    echo "Dialectic state is stale but archiving failed — leaving .claude/dialectic in place. Archive it manually." >&2
+  fi
   exit 0
 fi
 
@@ -461,6 +465,12 @@ elif [ "$LOOP" = "distillation" ]; then
       mv "$STATE_FILE.tmp" "$STATE_FILE"
 
       echo "Distillation pass $DIST_ITER is below the minimum ($DIST_MIN). The first draft is never the final memo — first-pass probes are lenient. Re-run all five probes in ADVERSARIAL mode: Sufficiency (could a *skeptical* reader act on this?), Conviction-Ink (find the weakest sentence), Tension (is the refutatio engaging the *strongest* counter?), Trace (is the altitude shift the *lead*?), Threads (remove one thread — does the argument collapse?). Revise the memo based on findings. Read state from .claude/dialectic/state.json and follow skills/dialectic/DISTILLATION.md." >&2
+      exit 2
+    fi
+
+    # No-memo gate: distillation cannot conclude without a draft or final memo.
+    if [ ! -f "$STATE_DIR/memo-draft.md" ] && [ ! -f "$STATE_DIR/memo-final.md" ]; then
+      echo "Distillation cannot conclude — no memo-draft.md exists. Write the memo draft per skills/dialectic/DISTILLATION.md, keep decision as conclude, and stop again." >&2
       exit 2
     fi
 
