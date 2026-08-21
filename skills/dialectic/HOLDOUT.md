@@ -149,7 +149,7 @@ Write your report in EXACTLY this format to the output file:
 | R (Reasoning)  | X.XX | X.XX | [reason for adjustment or "no change"] |
 | E (Evidence)   | X.XX | X.XX | [reason for adjustment or "no change"] |
 | C (Conclusion) | X.XX | X.XX | [reason for adjustment or "no change"] |
-| **Composite**  | X.XX | X.XX | |
+| **Lowest**     | X.XX | X.XX | [the minimum of R, E, C — never their average] |
 
 ## Pass 1: Structural Audit
 
@@ -204,3 +204,5 @@ Write your report in EXACTLY this format to the output file:
 - If the evidence genuinely supports the thesis and the reasoning is sound, say so. VALIDATED is a valid outcome.
 - Do not invent evidence for the inversion. Use only what appears in the trace.
 - Confidence adjustments should be conservative. Move dimensions by at most 0.15 unless you found severe structural problems.
+
+Sources: RESOURCES.md

@@ -276,3 +276,5 @@ The reader of a forge report should be able to open their editor and
 start building without asking clarifying questions about the architecture.
 If they'd need to ask "but where does X go?" or "what happens when Y fails?"
 the forge report is incomplete.
+
+Sources: RESOURCES.md

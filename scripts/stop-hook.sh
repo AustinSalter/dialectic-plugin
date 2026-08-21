@@ -22,7 +22,16 @@ fi
 # Allow the stop so the hook doesn't block every future conversation.
 STALE_THRESHOLD_MIN=120
 if [ "$(find "$STATE_FILE" -mmin +${STALE_THRESHOLD_MIN} 2>/dev/null)" ]; then
-  echo "Dialectic state.json is stale (>${STALE_THRESHOLD_MIN} min). Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume." >&2
+  OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
+  OUTPUT_DIR=${OUTPUT_DIR:-.dialectic-output/}
+  ARCHIVE_DIR="${OUTPUT_DIR%/}/abandoned-$(date +%Y%m%dT%H%M%S)"
+  mkdir -p "$ARCHIVE_DIR"
+  if cp -R "$STATE_DIR/." "$ARCHIVE_DIR/"; then
+    rm -rf "$STATE_DIR"
+    echo "Dialectic state was stale (>${STALE_THRESHOLD_MIN} min). Archived the abandoned session to $ARCHIVE_DIR and cleared the state dir. Start fresh with /dialectic:dialectic." >&2
+  else
+    echo "Dialectic state is stale but archiving failed — leaving .claude/dialectic in place. Archive it manually." >&2
+  fi
   exit 0
 fi
 
@@ -44,6 +53,13 @@ FORGE_ITER=$(jq -r '.forge_iteration // 1' "$STATE_FILE" 2>/dev/null)
 FORGE_MAX=$(jq -r '.forge_max // 4' "$STATE_FILE" 2>/dev/null)
 FORGE_MIN=$(jq -r '.forge_min // 2' "$STATE_FILE" 2>/dev/null)
 
+# Liveness beacon: models check this to detect a hook that never fired.
+if jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.last_hook_ts = $ts' "$STATE_FILE" > "$STATE_FILE.tmp" 2>/dev/null; then
+  mv "$STATE_FILE.tmp" "$STATE_FILE"
+else
+  rm -f "$STATE_FILE.tmp"
+fi
+
 # 3D Confidence: R (defensibility), E (evidence saturation), C (domain determinacy)
 CONF_TYPE=$(jq -r '.thesis.confidence | type' "$STATE_FILE" 2>/dev/null)
 if [ "$CONF_TYPE" = "object" ]; then
@@ -56,6 +72,32 @@ else
   R="$LEGACY"
   E="$LEGACY"
   C="$LEGACY"
+fi
+
+SCRATCHPAD="$STATE_DIR/scratchpad.md"
+
+# Warrant gate: a decision is only honored if its reasoning was externalized.
+if [ -n "$DECISION" ] && [ "$DECISION" != "null" ]; then
+  if [ "$LOOP" = "reasoning" ]; then
+    PROBE_COUNT=$(grep -c '^[[:space:]]*probes:' "$SCRATCHPAD" 2>/dev/null)
+    PROBE_COUNT=${PROBE_COUNT:-0}
+    if [ "$PROBE_COUNT" -lt "$ITERATION" ]; then
+      echo "Warrant gate: found $PROBE_COUNT 'probes:' block(s) in scratchpad.md but iteration is $ITERATION. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing." >&2
+      exit 2
+    fi
+    if { [ "$DECISION" = "reject" ] || [ "$DECISION" = "REJECT" ]; } && ! grep -q '^[[:space:]]*if_reject' "$SCRATCHPAD" 2>/dev/null; then
+      echo "Warrant gate: decision is reject but scratchpad.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again." >&2
+      exit 2
+    fi
+  fi
+  if [ "$LOOP" = "distillation" ] && { [ "$DECISION" = "conclude" ] || [ "$DECISION" = "CONCLUDE" ]; }; then
+    PR_COUNT=$(grep -c '^[[:space:]]*probe_results:' "$SCRATCHPAD" 2>/dev/null)
+    PR_COUNT=${PR_COUNT:-0}
+    if [ "$PR_COUNT" -lt "$DIST_ITER" ]; then
+      echo "Warrant gate: found $PR_COUNT 'probe_results:' block(s) in scratchpad.md but distillation pass is $DIST_ITER. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/scratchpad.md, then stop again." >&2
+      exit 2
+    fi
+  fi
 fi
 
 # Artifact name → filename mapping (function for bash 3.2 compatibility)
@@ -126,6 +168,26 @@ preserve_artifacts() {
 MANIFEST_EOF
 
   echo "$session_dir"
+}
+
+checkpoint_artifacts() {
+  local output_dir session_id checkpoint_dir
+  output_dir=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
+  session_id=$(jq -r '.session_id // ""' "$STATE_FILE" 2>/dev/null)
+  case "$session_id" in
+    dialectic-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+    *)
+      session_id="dialectic-$(date +%Y%m%dT%H%M%S)"
+      jq --arg sid "$session_id" '.session_id = $sid' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
+      ;;
+  esac
+  checkpoint_dir="${output_dir%/}/$session_id/checkpoint"
+  mkdir -p "$checkpoint_dir"
+  for f in scratchpad.md thesis-history.md prompt.md state.json; do
+    [ -f "$STATE_DIR/$f" ] && cp "$STATE_DIR/$f" "$checkpoint_dir/$f"
+  done
+  echo "  Checkpoint: $checkpoint_dir"
 }
 
 # Wait barrier: before terminal decisions, wait for active background
@@ -213,6 +275,7 @@ if [ "$LOOP" = "reasoning" ]; then
         # REASONING COMPLETE — exit cleanly, user invokes distillation separately
         jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
         mv "$STATE_FILE.tmp" "$STATE_FILE"
+        checkpoint_artifacts
         echo ""
         echo "================================================"
         echo "  Reasoning loop complete!"
@@ -224,6 +287,47 @@ if [ "$LOOP" = "reasoning" ]; then
         echo "================================================"
         exit 0
       fi
+    fi
+  fi
+
+  # Check for rejection — the thesis is refuted. Legal from iteration 1:
+  # floors prevent premature conclusion; premature death is the point.
+  if [ "$DECISION" = "reject" ] || [ "$DECISION" = "REJECT" ]; then
+    if wait_for_explorations; then
+      echo "Background exploration(s) completed while rejecting. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the REJECT decision." >&2
+      exit 2
+    fi
+
+    REJECT_PASSES=$(jq -r '.reject_passes // 0' "$STATE_FILE" 2>/dev/null)
+    COUNTER_THESIS=$(jq -r '.counter_thesis // ""' "$STATE_FILE" 2>/dev/null)
+
+    if [ -n "$COUNTER_THESIS" ] && [ "$COUNTER_THESIS" != "null" ] && [ "$REJECT_PASSES" -lt 1 ]; then
+      jq '.reject_passes = ((.reject_passes // 0) + 1) | .thesis.current = .counter_thesis | .counter_thesis = null | .iteration = 0 | .decision = null | .phase = "expansion"' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
+
+      echo ""
+      echo "================================================"
+      echo "  REJECT — thesis refuted, counter-thesis offered"
+      echo "  Re-entering reasoning with the counter-thesis (re-loop 1/1)"
+      echo "================================================"
+
+      echo "The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in scratchpad.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped." >&2
+      exit 2
+    else
+      jq '.loop = "awaiting_distillation" | .thesis.status = "refuted" | .decision = null' "$STATE_FILE" > "$STATE_FILE.tmp"
+      mv "$STATE_FILE.tmp" "$STATE_FILE"
+      checkpoint_artifacts
+
+      echo ""
+      echo "================================================"
+      echo "  Thesis REFUTED (iteration $ITERATION)"
+      echo "  R: $R | E: $E | C: $C"
+      echo ""
+      echo "  Run /dialectic:dialectic-distill to produce"
+      echo "  the refutation memo — knowing why it's wrong"
+      echo "  is a conviction too."
+      echo "================================================"
+      exit 0
     fi
   fi
 
@@ -309,6 +413,7 @@ if [ "$LOOP" = "reasoning" ]; then
     else
       jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
+      checkpoint_artifacts
       echo ""
       echo "================================================"
       echo "  Max iterations reached ($ITERATION/$MAX_ITERATIONS)"
@@ -363,6 +468,28 @@ elif [ "$LOOP" = "distillation" ]; then
       exit 2
     fi
 
+    # No-memo gate: distillation cannot conclude without a draft or final memo.
+    if [ ! -f "$STATE_DIR/memo-draft.md" ] && [ ! -f "$STATE_DIR/memo-final.md" ]; then
+      echo "Distillation cannot conclude — no memo-draft.md exists. Write the memo draft per skills/dialectic/DISTILLATION.md, keep decision as conclude, and stop again." >&2
+      exit 2
+    fi
+
+    # Promotion check: the memo must carry its commitments (SYNTHESIS.md spec).
+    if [ -f "$STATE_DIR/memo-draft.md" ]; then
+      THESIS_STATUS=$(jq -r '.thesis.status // ""' "$STATE_FILE" 2>/dev/null)
+      MISSING=""
+      if [ "$THESIS_STATUS" = "refuted" ]; then
+        grep -qiE 'refut' "$STATE_DIR/memo-draft.md" || MISSING=" refutation-basis"
+      else
+        grep -qiE '(^|[^a-z])bet([^a-z]|$)' "$STATE_DIR/memo-draft.md" || MISSING=" the-bet"
+        grep -qiE 'falsif|disconfirm' "$STATE_DIR/memo-draft.md" || MISSING="$MISSING disconfirmation"
+      fi
+      if [ -n "$MISSING" ]; then
+        echo "Memo promotion blocked — memo-draft.md is missing:$MISSING. The memo spec is skills/dialectic/SYNTHESIS.md: state the bet and its falsification triggers (or, for a refuted thesis, the refuting basis). Revise memo-draft.md, keep decision as conclude, and stop again." >&2
+        exit 2
+      fi
+    fi
+
     # Distillation complete — preserve artifacts, clean up, and exit
     echo ""
     echo "================================================"
@@ -378,7 +505,7 @@ elif [ "$LOOP" = "distillation" ]; then
 
     # Preserve artifacts before cleanup
     OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
-    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history"]) | join(",")' "$STATE_FILE" 2>/dev/null)
+    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history","scratchpad","state","prompt"]) | join(",")' "$STATE_FILE" 2>/dev/null)
     SESSION_ID=$(jq -r '.session_id // "dialectic-unknown"' "$STATE_FILE" 2>/dev/null)
     SAVED_TO=$(preserve_artifacts "$STATE_DIR" "$OUTPUT_DIR" "$KEEP_ARTIFACTS" "$SESSION_ID")
     if [ -n "$SAVED_TO" ]; then
@@ -444,6 +571,7 @@ elif [ "$LOOP" = "holdout" ]; then
       # VALIDATED, CHALLENGED, or FRACTURED at max passes — transition to awaiting_distillation
       jq '.loop = "awaiting_distillation"' "$STATE_FILE" > "$STATE_FILE.tmp"
       mv "$STATE_FILE.tmp" "$STATE_FILE"
+      checkpoint_artifacts
 
       echo ""
       echo "================================================"
@@ -501,6 +629,7 @@ elif [ "$LOOP" = "forge" ]; then
     # Mark forge as complete but do NOT clean up — user may still run distill
     jq '.loop = "awaiting_distillation" | .synthesis.forge_run = true | .synthesis.forge_path = ".claude/dialectic/forge_report.md"' "$STATE_FILE" > "$STATE_FILE.tmp"
     mv "$STATE_FILE.tmp" "$STATE_FILE"
+    checkpoint_artifacts
 
     echo "  Forge report: .claude/dialectic/forge_report.md"
     echo ""

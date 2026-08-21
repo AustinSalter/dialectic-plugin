@@ -25,7 +25,7 @@ If any are missing, report which and stop.
 
 Parse `$ARGUMENTS` for optional flags:
 - `--output=<dir>` — Directory for preserved artifacts (overrides state.json value, default: `.dialectic-output/`)
-- `--keep=<list>` — Comma-separated artifact names to preserve (overrides state.json value, default: `memo,spine,history`)
+- `--keep=<list>` — Comma-separated artifact names to preserve (overrides state.json value, default: `memo,spine,history,scratchpad,state,prompt`)
 - `--min-passes=N` — Minimum distillation passes (default: 2)
 - `--max-passes=N` — Maximum distillation passes (default: 4)
 
@@ -63,6 +63,8 @@ On pass 1: Extract spine, draft memo (incorporating holdout findings if present)
 On pass 2+: Revise based on previous probe findings, re-run probes in adversarial mode, write decision, stop.
 
 The memo target format is defined in `skills/dialectic/SYNTHESIS.md`.
+
+Each pass, append a `probe_results:` yaml block to `.claude/dialectic/scratchpad.md` — all five probes, per-probe verdict, and the quoted memo text each verdict rests on. The stop hook will not conclude distillation without one block per pass.
 
 ## CRITICAL: One Pass Per Response
 

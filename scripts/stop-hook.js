@@ -11,7 +11,7 @@ const fs = require("fs");
 const path = require("path");
 
 // On macOS/Linux, delegate to the bash hook
-if (process.platform !== "win32") {
+if (process.platform !== "win32" && process.env.DIALECTIC_HOOK_IMPL !== "node") {
   const { execFileSync } = require("child_process");
   const bashHook = path.join(__dirname, "stop-hook.sh");
   try {
@@ -32,16 +32,35 @@ if (!fs.existsSync(STATE_FILE)) {
   process.exit(0);
 }
 
+function tsStamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+function state0OutputDir() {
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, "utf8")).output_dir; } catch { return null; }
+}
+
 // Staleness guard: if state.json hasn't been modified in 2 hours,
 // the session is orphaned (e.g. terminal closed mid-session).
 // Allow the stop so the hook doesn't block every future conversation.
 const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 const stateAge = Date.now() - fs.statSync(STATE_FILE).mtimeMs;
 if (stateAge > STALE_THRESHOLD_MS) {
-  process.stderr.write(
-    `Dialectic state.json is stale (${Math.round(stateAge / 60000)} min old). ` +
-    `Run /dialectic:cancel-dialectic to clean up, or /dialectic:dialectic to resume.\n`
-  );
+  const outputDir = (state0OutputDir() || ".dialectic-output/").replace(/\/$/, "");
+  const archiveDir = path.join(outputDir, "abandoned-" + tsStamp());
+  try {
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.cpSync(STATE_DIR, archiveDir, { recursive: true });
+    fs.rmSync(STATE_DIR, { recursive: true, force: true });
+    process.stderr.write(
+      `Dialectic state was stale. Archived the abandoned session to ${archiveDir} and cleared the state dir. Start fresh with /dialectic:dialectic.\n`
+    );
+  } catch (e) {
+    process.stderr.write(
+      "Dialectic state is stale but archiving failed — leaving .claude/dialectic in place. Archive it manually.\n"
+    );
+  }
   process.exit(0);
 }
 
@@ -52,6 +71,10 @@ try {
 } catch (e) {
   process.exit(0);
 }
+
+// Liveness beacon: models check this to detect a hook that never fired.
+state.last_hook_ts = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+writeState(state);
 
 const loop = state.loop || "reasoning";
 const decision = (state.decision || "").toLowerCase();
@@ -76,6 +99,34 @@ function log(msg) {
 function blockStop(reason) {
   process.stderr.write(reason + "\n");
   process.exit(2);
+}
+
+const SCRATCHPAD = path.join(STATE_DIR, "scratchpad.md");
+
+function countBlocks(re) {
+  try {
+    return (fs.readFileSync(SCRATCHPAD, "utf8").match(re) || []).length;
+  } catch { return 0; }
+}
+
+// Warrant gate: a decision is only honored if its reasoning was externalized.
+if (decision) {
+  if (loop === "reasoning") {
+    const n = countBlocks(/^[ \t]*probes:/gm);
+    if (n < iteration) {
+      blockStop(`Warrant gate: found ${n} 'probes:' block(s) in scratchpad.md but iteration is ${iteration}. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing.`);
+    }
+    if (decision === "reject" && countBlocks(/^[ \t]*if_reject/gm) === 0) {
+      blockStop("Warrant gate: decision is reject but scratchpad.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again.");
+    }
+  }
+  if (loop === "distillation" && decision === "conclude") {
+    const n = countBlocks(/^[ \t]*probe_results:/gm);
+    const distIter = state.distillation_iteration || 1;
+    if (n < distIter) {
+      blockStop(`Warrant gate: found ${n} 'probe_results:' block(s) in scratchpad.md but distillation pass is ${distIter}. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/scratchpad.md, then stop again.`);
+    }
+  }
 }
 
 // Artifact name → filename mapping
@@ -127,6 +178,23 @@ function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
   );
 
   return sessionDir;
+}
+
+function checkpointArtifacts() {
+  const outputDir = (state.output_dir || ".dialectic-output/").replace(/\/$/, "");
+  let sessionId = state.session_id || "";
+  if (!/^dialectic-\d{8}T\d{6}$/.test(sessionId)) {
+    sessionId = "dialectic-" + tsStamp();
+    state.session_id = sessionId;
+    writeState(state);
+  }
+  const checkpointDir = path.join(outputDir, sessionId, "checkpoint");
+  fs.mkdirSync(checkpointDir, { recursive: true });
+  for (const f of ["scratchpad.md", "thesis-history.md", "prompt.md", "state.json"]) {
+    const src = path.join(STATE_DIR, f);
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(checkpointDir, f));
+  }
+  log(`  Checkpoint: ${checkpointDir}`);
 }
 
 // Wait barrier: before terminal decisions (CONCLUDE/ELEVATE/max-iterations),
@@ -206,6 +274,7 @@ if (loop === "reasoning") {
         // REASONING COMPLETE — exit cleanly, user invokes distillation separately
         state.loop = "awaiting_distillation";
         writeState(state);
+        checkpointArtifacts();
         log("");
         log("================================================");
         log("  Reasoning loop complete!");
@@ -217,6 +286,56 @@ if (loop === "reasoning") {
         log("================================================");
         process.exit(0);
       }
+    }
+  }
+
+  // Check for rejection — the thesis is refuted. Legal from iteration 1:
+  // floors prevent premature conclusion; premature death is the point.
+  if (decision === "reject") {
+    if (waitForExplorations(state)) {
+      blockStop(
+        `Background exploration(s) completed while rejecting. Re-run the convergence check (skills/dialectic/CRITIQUE.md) with the new results in .claude/dialectic/explorations/ before finalizing the REJECT decision.`
+      );
+    }
+
+    const rejectPasses = state.reject_passes || 0;
+    const counterThesis = state.counter_thesis || null;
+
+    if (counterThesis && rejectPasses < 1) {
+      state.reject_passes = rejectPasses + 1;
+      state.thesis.current = counterThesis;
+      state.counter_thesis = null;
+      state.iteration = 0;
+      state.decision = null;
+      state.phase = "expansion";
+      writeState(state);
+
+      log("");
+      log("================================================");
+      log("  REJECT — thesis refuted, counter-thesis offered");
+      log("  Re-entering reasoning with the counter-thesis (re-loop 1/1)");
+      log("================================================");
+
+      blockStop(
+        `The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in scratchpad.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped.`
+      );
+    } else {
+      state.loop = "awaiting_distillation";
+      state.thesis.status = "refuted";
+      state.decision = null;
+      writeState(state);
+      checkpointArtifacts();
+
+      log("");
+      log("================================================");
+      log(`  Thesis REFUTED (iteration ${iteration})`);
+      log(`  R: ${R} | E: ${E} | C: ${C}`);
+      log("");
+      log("  Run /dialectic:dialectic-distill to produce");
+      log("  the refutation memo — knowing why it's wrong");
+      log("  is a conviction too.");
+      log("================================================");
+      process.exit(0);
     }
   }
 
@@ -297,6 +416,7 @@ if (loop === "reasoning") {
     } else {
       state.loop = "awaiting_distillation";
       writeState(state);
+      checkpointArtifacts();
       log("");
       log("================================================");
       log(`  Max iterations reached (${iteration}/${maxIterations})`);
@@ -355,6 +475,29 @@ if (loop === "reasoning") {
   }
 
   if (decision === "conclude") {
+    // No-memo gate: distillation cannot conclude without a draft or final memo.
+    const draftExists = fs.existsSync(path.join(STATE_DIR, "memo-draft.md"));
+    const finalExists = fs.existsSync(path.join(STATE_DIR, "memo-final.md"));
+    if (!draftExists && !finalExists) {
+      blockStop("Distillation cannot conclude — no memo-draft.md exists. Write the memo draft per skills/dialectic/DISTILLATION.md, keep decision as conclude, and stop again.");
+    }
+
+    // Promotion check: the memo must carry its commitments (SYNTHESIS.md spec).
+    const draftCheck = path.join(STATE_DIR, "memo-draft.md");
+    if (fs.existsSync(draftCheck)) {
+      const memo = fs.readFileSync(draftCheck, "utf8");
+      const missing = [];
+      if ((state.thesis && state.thesis.status) === "refuted") {
+        if (!/refut/i.test(memo)) missing.push("refutation-basis");
+      } else {
+        if (!/(^|[^a-z])bet([^a-z]|$)/i.test(memo)) missing.push("the-bet");
+        if (!/falsif|disconfirm/i.test(memo)) missing.push("disconfirmation");
+      }
+      if (missing.length) {
+        blockStop(`Memo promotion blocked — memo-draft.md is missing: ${missing.join(", ")}. The memo spec is skills/dialectic/SYNTHESIS.md: state the bet and its falsification triggers (or, for a refuted thesis, the refuting basis). Revise memo-draft.md, keep decision as conclude, and stop again.`);
+      }
+    }
+
     // Distillation complete — preserve artifacts, clean up, and exit
     log("");
     log("================================================");
@@ -372,7 +515,7 @@ if (loop === "reasoning") {
 
     // Preserve artifacts before cleanup
     const outputDir = state.output_dir || ".dialectic-output/";
-    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history"];
+    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history", "scratchpad", "state", "prompt"];
     const sessionId = state.session_id || "dialectic-" + Date.now();
     const savedTo = preserveArtifacts(STATE_DIR, outputDir, keepArtifacts, sessionId);
     if (savedTo) {
@@ -449,6 +592,7 @@ if (loop === "reasoning") {
       // VALIDATED, CHALLENGED, or FRACTURED at max passes — transition to awaiting_distillation
       state.loop = "awaiting_distillation";
       writeState(state);
+      checkpointArtifacts();
 
       log("");
       log("================================================");
@@ -517,6 +661,7 @@ if (loop === "reasoning") {
     state.synthesis.forge_run = true;
     state.synthesis.forge_path = ".claude/dialectic/forge_report.md";
     writeState(state);
+    checkpointArtifacts();
 
     log(`  Forge report: .claude/dialectic/forge_report.md`);
     log("");

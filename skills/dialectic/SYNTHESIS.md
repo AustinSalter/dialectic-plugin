@@ -71,6 +71,18 @@ The thing the reader actually reads. Everything above is support for this table.
 |----------------|------------|-----------------|----------------|-----------------|
 | [ACTION VERB]  | High/Med/Low | [Timeframe]   | [Binding limit]| [Observable]    |
 
+### Verdict vocabulary is bounded by the state file
+
+The numbers stay out of the memo; they bound its verbs. Conviction cannot outrun the weakest dimension, so read the band off the lowest of R, E, and C — no averaging. A thesis with saturated evidence and broken reasoning is not medium anything.
+
+| Band (lowest of R, E, C) | Permitted language |
+|---|---|
+| lowest < 0.5 | Conviction reads **Low**; Recommendation limited to HOLD or MONITOR — no commitment verbs (ADOPT, ACQUIRE, ENTER). |
+| 0.5 ≤ lowest < 0.7 | Conviction reads **Med**; ADOPT permitted only with its disconfirmation triggers named in the Verdict row. |
+| lowest ≥ 0.7 | Conviction reads **High**; commitment verbs permitted. |
+
+If felt conviction disagrees with the numbers, say so in one sentence under the Verdict table — the numbers still set the band.
+
 ---
 
 ## Example: Yahoo-Google (2002)
@@ -146,6 +158,8 @@ Distillation is a loop, not a single pass. The first draft is never the final me
 ## Redundancy Check
 
 Before finalizing, test every section against every other section. If two sections make the same point, one of them is redundant. The Bet should not restate the Leap. The Disconfirmation Triggers should not restate the Decision Gate. The Situation should not contain evidence that belongs in the Leap. Each section has one job. If it's doing another section's job, cut the duplicate.
+
+Sources: RESOURCES.md
 
 ## Completion Token
 

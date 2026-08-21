@@ -1,6 +1,6 @@
 {
   "name": "dialectic",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Multi-pass dialectic reasoning with automatic looping. Analyzes complex strategic questions through iterative expansion, compression, and critique cycles.",
   "author": {
     "name": "Austin Salter"

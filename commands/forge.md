@@ -10,7 +10,7 @@ You are executing the forge phase of a dialectic reasoning session. Follow this 
 ## Step 1: Validate Reasoning Artifacts
 
 Read `.claude/dialectic/state.json`. Check:
-- File must exist — if not, no reasoning session has been run. Tell the user to run `/dialectic:dialectic` first.
+- File must exist — if not, check the fallback below before concluding no session was run: a completed distillation may have cleaned up `.claude/dialectic/` after preserving to `.dialectic-output/`. Only if neither exists, tell the user to run `/dialectic:dialectic` first.
 - `loop` must be `"awaiting_distillation"` — if it's `"reasoning"`, the reasoning loop is still active. Tell the user to complete or cancel it first.
 - If `loop` is already `"forge"`, a forge synthesis is in progress. Resume it.
 
@@ -20,6 +20,8 @@ Required artifacts (all must exist in `.claude/dialectic/`):
 - `thesis-history.md` — iteration trajectory
 
 If any are missing, report which and stop.
+
+**Fallback for concluded distillation**: If `.claude/dialectic/` does not exist (distillation already concluded and cleaned up), find the newest preserved session: `ls -td .dialectic-output/*/ | head -1`. The forge loop is stop-hook-driven off `.claude/dialectic/state.json` — reasoning in place under `.dialectic-output/` gives the hook nothing to enforce. Restore the session instead: `mkdir -p .claude/dialectic && cp <session>/scratchpad.md <session>/state.json <session>/thesis-history.md <session>/prompt.md .claude/dialectic/`. Then continue from Step 2 (argument parsing) as normal — the restored state carries the original session_id, so later preservation lands in the same session directory. Say which session you restored from.
 
 ## Step 2: Parse Arguments and Initialize
 

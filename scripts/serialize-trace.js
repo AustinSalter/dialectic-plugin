@@ -14,16 +14,47 @@ const STATE_DIR = ".claude/dialectic";
 const STATE_FILE = path.join(STATE_DIR, "state.json");
 const HOLDOUT_DIR = path.join(STATE_DIR, "holdout_input");
 
-// Marker patterns
-const MARKER_PATTERNS = {
-  EVIDENCE: /\[EVIDENCE\]\s*(.+)/g,
-  COUNTER: /\[COUNTER\]\s*(.+)/g,
-  TENSION: /\[TENSION\]\s*(.+)/g,
-  INSIGHT: /\[INSIGHT\]\s*(.+)/g,
-  THREAD: /\[THREAD\]\s*(.+)/g,
-  RISK: /\[RISK\]\s*(.+)/g,
-  QUESTION: /\[QUESTION\]\s*(.+)/g,
-};
+// Marker dialect (see skills/dialectic/MARKERS.md): heads may carry a
+// suffix tag ([EVIDENCE:web]), a state transition ([TENSION -> resolved]),
+// and/or leading position tags ([PRIMARY]); bodies may span multiple lines
+// and heads may be indented as sub-bullets. Stitch markers ([BRIDGE: a -> b])
+// join two markers and can appear anywhere on a line, including mid-sentence
+// at the tail of another marker's continuation line.
+const MARKER_TYPES = ["EVIDENCE", "COUNTER", "TENSION", "INSIGHT", "THREAD", "RISK", "QUESTION"];
+const POSITION_TAGS = ["PRIMARY", "DOWNSTREAM", "CRITIQUE", "SYNTHESIS", "TANGENTIAL", "ALIGNED", "OPPOSING", "NEUTRAL"];
+const STITCH_TYPES = ["BRIDGE", "RESOLVES", "CONTRADICTS", "QUALIFIES"];
+
+// Marker head: [TYPE], [TYPE:tag], [TYPE -> state] — optionally followed by
+// position tags like [PRIMARY]. Heads may be indented (sub-bullets under a
+// paragraph). Body runs to the next blank line or next marker line.
+const MARKER_HEAD = new RegExp(
+  "^\\s*\\[(" + MARKER_TYPES.join("|") + ")(?::([a-z-]+))?(?:\\s*(?:->|→)\\s*([a-z-]+))?\\]\\s*(.*)$"
+);
+// Stitch heads are searched anywhere on a line (not just at column 0) because
+// they can appear mid-sentence, at the tail of another marker's body line.
+const STITCH_HEAD = new RegExp("\\[(" + STITCH_TYPES.join("|") + "):\\s*([^\\]]+)\\]\\s*(.*)$");
+// Anchored variant used only to decide where a marker's BODY ends: a stitch
+// terminates the body only when it starts the line (after optional leading
+// whitespace). A stitch riding at the tail of prose is inventoried by
+// extractStitches (via the unanchored STITCH_HEAD above) but does not cut
+// off the marker body it's embedded in.
+const STITCH_HEAD_ANCHORED = new RegExp("^\\s*\\[(" + STITCH_TYPES.join("|") + "):");
+
+function stripPositionTags(text) {
+  const tags = [];
+  let rest = text;
+  const tagRe = new RegExp("^\\[(" + POSITION_TAGS.join("|") + ")\\]\\s*");
+  let m;
+  while ((m = rest.match(tagRe))) {
+    tags.push(m[1]);
+    rest = rest.slice(m[0].length);
+  }
+  return { tags, rest };
+}
+
+function isHeadLine(line) {
+  return MARKER_HEAD.test(line) || STITCH_HEAD_ANCHORED.test(line);
+}
 
 function readFileOr(filepath, fallback) {
   try {
@@ -35,16 +66,35 @@ function readFileOr(filepath, fallback) {
 
 function extractMarkers(text) {
   const markers = {};
-  for (const [type, pattern] of Object.entries(MARKER_PATTERNS)) {
-    markers[type] = [];
-    let match;
-    // Reset regex for each use
-    const re = new RegExp(pattern.source, pattern.flags);
-    while ((match = re.exec(text)) !== null) {
-      markers[type].push(match[1].trim());
+  for (const t of MARKER_TYPES) markers[t] = [];
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(MARKER_HEAD);
+    if (!m) continue;
+    const [, type, suffix, stateTag, firstRest] = m;
+    const { tags, rest } = stripPositionTags(firstRest);
+    const body = [rest];
+    while (i + 1 < lines.length && lines[i + 1].trim() !== "" && !isHeadLine(lines[i + 1])) {
+      body.push(lines[++i].trim());
     }
+    const annotations = [];
+    if (suffix) annotations.push("tags: " + suffix);
+    if (stateTag) annotations.push("state: " + stateTag);
+    if (tags.length) annotations.push("position: " + tags.join(","));
+    let entry = body.join(" ").trim();
+    if (annotations.length) entry += " (" + annotations.join("; ") + ")";
+    if (entry) markers[type].push(entry);
   }
   return markers;
+}
+
+function extractStitches(text) {
+  const stitches = [];
+  for (const line of text.split("\n")) {
+    const m = line.match(STITCH_HEAD);
+    if (m) stitches.push({ type: m[1], endpoints: m[2].trim(), text: m[3].trim() });
+  }
+  return stitches;
 }
 
 function parseIterations(historyText) {
@@ -132,12 +182,13 @@ if (!scratchpad && !history) {
 
 // Extract data
 const scratchpadMarkers = extractMarkers(scratchpad);
+const stitches = extractStitches(scratchpad);
 const iterations = parseIterations(history);
 const conf = (state.thesis && state.thesis.confidence) || {};
 const R = typeof conf === "object" ? (conf.R != null ? conf.R : 0.5) : conf;
 const E = typeof conf === "object" ? (conf.E != null ? conf.E : 0.5) : conf;
 const C = typeof conf === "object" ? (conf.C != null ? conf.C : 0.5) : conf;
-const composite = ((R + E + C) / 3).toFixed(2);
+const lowest = Math.min(R, E, C).toFixed(2);
 
 // Determine final iteration text for buried-marker detection
 const finalIterBody = iterations.length > 0
@@ -200,7 +251,7 @@ ${triggerText}
 - Reasoning (R): ${R}
 - Evidence (E): ${E}
 - Conclusion (C): ${C}
-- Composite: ${composite}
+- Lowest: ${lowest}
 - Termination reason: ${terminationReason}
 `;
 
@@ -209,19 +260,19 @@ ${triggerText}
 // ============================================================
 
 // Build confidence trajectory table
-let trajectoryTable = "| Iteration | R    | E    | C    | Composite | Delta |\n";
-trajectoryTable +=    "|-----------|------|------|------|-----------|-------|\n";
+let trajectoryTable = "| Iteration | R    | E    | C    | Lowest | Delta |\n";
+trajectoryTable +=    "|-----------|------|------|------|--------|-------|\n";
 
-let prevComposite = null;
+let prevLowest = null;
 for (const iter of iterations) {
   if (iter.R != null) {
-    const comp = ((iter.R + iter.E + iter.C) / 3).toFixed(2);
-    const delta = prevComposite != null
-      ? (parseFloat(comp) - prevComposite >= 0 ? "+" : "") +
-        (parseFloat(comp) - prevComposite).toFixed(2)
+    const low = Math.min(iter.R, iter.E, iter.C).toFixed(2);
+    const delta = prevLowest != null
+      ? (parseFloat(low) - prevLowest >= 0 ? "+" : "") +
+        (parseFloat(low) - prevLowest).toFixed(2)
       : "\u2014";
-    trajectoryTable += `| ${iter.num}         | ${iter.R.toFixed(2)} | ${iter.E.toFixed(2)} | ${iter.C.toFixed(2)} | ${comp}     | ${delta} |\n`;
-    prevComposite = parseFloat(comp);
+    trajectoryTable += `| ${iter.num}         | ${iter.R.toFixed(2)} | ${iter.E.toFixed(2)} | ${iter.C.toFixed(2)} | ${low}   | ${delta} |\n`;
+    prevLowest = parseFloat(low);
   }
 }
 
@@ -285,6 +336,8 @@ ${buildMarkerList("THREAD", scratchpadMarkers.THREAD || [])}
 ${buildMarkerList("RISK", scratchpadMarkers.RISK || [])}
 ### [QUESTION] markers
 ${buildMarkerList("QUESTION", scratchpadMarkers.QUESTION || [])}
+### Stitch markers (joins across sources — weigh above single-source findings)
+${stitches.length ? stitches.map((s) => `- ${s.type}: ${s.endpoints} — ${s.text}`).join("\n") : "[No stitch markers found]"}
 ## Markers Appearing in Expansion but Absent from Final Synthesis
 ${buriedSection}
 `;

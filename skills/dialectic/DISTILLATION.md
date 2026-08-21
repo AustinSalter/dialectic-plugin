@@ -26,6 +26,7 @@ Walk the scratchpad chronologically. Determine what survived:
 | `[EVIDENCE]` | Strength ≥ 3, still relevant to final thesis | Stale, contradicted, or irrelevant to final frame |
 | `[TENSION]` | Resolved with mechanism, or carried as open risk | Left hanging with no resolution attempt |
 | `[COUNTER]` | Addressed in Critique or Refutatio | Ignored entirely |
+| any marker | — | Killed by a REJECT's refuting_basis: record status `killed`, keep it in the spine |
 
 Harvest the Critique passes' preservation gates — "what must any elevation retain?" Those answers *are* the load-bearing claims.
 
@@ -36,10 +37,19 @@ Write spine to `.claude/dialectic/spine.yaml` (see Output Format below).
 ### Spine Validation
 
 - Every load-bearing claim has evidence with strength ≥ 3
+- Every evidence atom carries the source compression gave it — a spine atom without its source is a rumor with a strength score
 - Causal chain connects thesis to claims without gaps
 - No survived claim depends on a superseded claim
 
 *If validation fails, the reasoning loop left gaps. Note them as open risks.*
+
+### Killed claims stay visible
+
+A claim with status `killed` must appear in the memo's refutatio with what killed it. Claims that die must stay visibly dead — a spine that silently drops its dead is lying about the fight.
+
+### Refutation memos
+
+If `thesis.status` is `"refuted"`, the memo's verdict is the refutation: state what the thesis claimed, the refuting basis (quoted from the spine), and what evidence would resurrect it. Same probes, same compression gate — a refutation memo is still a conviction memo.
 
 ## Distillation Probes
 
@@ -52,6 +62,17 @@ Run all five against each draft:
 | Sufficiency | Could the reader act on this without the scratchpad? | Missing decision-relevant information |
 | Conviction-Ink | Does every sentence advance the argument, provide evidence, or acknowledge risk? | Hedging, throat-clearing, decoration |
 | Threads | ≤3 independent argument threads held simultaneously? | Cognitive overload — compression failed |
+
+Each pass appends a `probe_results:` block to the scratchpad — one entry per probe, each quoting the memo sentence that decided its verdict. For whole-memo probes (Trace, Threads), quote the sentence that came closest to failing. A probe that names no sentence examined nothing.
+
+```yaml
+probe_results:
+  - probe: conviction_ink
+    examined: "[the memo sentence, quoted verbatim]"
+    verdict: [PASS | FAIL] — [what the sentence does or fails to do]
+```
+
+On pass 2+ the probes run adversarially (see SYNTHESIS.md's pass-2 column): quote the weakest sentence you can find, not the one that passes most easily.
 
 ## Compression Gate (Required)
 
@@ -89,7 +110,7 @@ spine:
   claims:
     - id: C1
       claim: "<specific claim>"
-      status: survived  # survived | superseded | weakened
+      status: survived  # survived | superseded | weakened | killed
       evidence: [E1, E3]
       depends_on: []
       load_bearing: true
@@ -98,6 +119,7 @@ spine:
     - id: E1
       statement: "<data point>"
       strength: 4  # 1-5 scale
+      source: "<URL, document, or 'prior'>"  # carried from compression
 
   causal_chain:
     - from: C1
@@ -202,6 +224,8 @@ When promoting `memo-draft.md` to final, rename section headers for a profession
 If the memo has a title line (e.g., `# NuServ Series B: Investment Committee Memo`), keep it. The Headline Insight text becomes the opening bold statement immediately after the title, with no section header.
 
 Do not change any content — only headers. The probes already validated the substance; this is a formatting pass only.
+
+Sources: RESOURCES.md
 
 ## CRITICAL: Stop After Each Distillation Pass
 

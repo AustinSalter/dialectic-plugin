@@ -262,3 +262,5 @@ When patterns conflict, weight by **which dynamic dominates the strategic decisi
 
 *Last updated: 2026-01-29*
 *To add domain-specific patterns, create a new section or extend existing seeders.*
+
+Sources: RESOURCES.md
