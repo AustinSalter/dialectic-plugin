@@ -9,11 +9,11 @@ import { makeSandbox } from "./helpers.mjs";
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 const FIXTURE = readFileSync(join(REPO, "tests", "fixtures", "scratchpad-da776260.md"), "utf8");
 
-function serialize(scratchpad) {
+function serialize(scratchpad, confidence = { R: 0.7, E: 0.8, C: 0.5 }) {
   const sb = makeSandbox();
   writeFileSync(join(sb.stateDir, "state.json"), JSON.stringify({
     iteration: 4, max_iterations: 5,
-    thesis: { current: "t", confidence: { R: 0.7, E: 0.8, C: 0.5 } },
+    thesis: { current: "t", confidence },
   }));
   writeFileSync(join(sb.stateDir, "scratchpad.md"), scratchpad);
   writeFileSync(join(sb.stateDir, "thesis-history.md"), "## Iteration 1\n**Thesis**: t\n**Confidence**: R=0.70 E=0.80 C=0.50\n**Decision**: CONCLUDE\n");
@@ -63,4 +63,19 @@ test("suffix and position tags are captured, not dropped", () => {
 test("state-annotated markers extract", () => {
   const { summary } = serialize("[TENSION -> resolved] A conflicted with B until C.\n\nprobes:\n  x: y\n");
   assert.match(summary, /A conflicted with B until C/);
+});
+
+test("confidence at termination reports Lowest, not Composite (HOLDOUT.md lowest-of rule)", () => {
+  const { thesis } = serialize(
+    "[EVIDENCE] Some evidence.\n\nprobes:\n  x: y\n",
+    { R: 0.9, E: 0.4, C: 0.8 }
+  );
+  assert.match(thesis, /Lowest: 0\.40/);
+  assert.ok(!thesis.includes("Composite"), "Composite must not appear in output");
+});
+
+test("unicode arrow (→) in state-annotated marker extracts, same as ASCII ->", () => {
+  const { summary } = serialize("[TENSION → resolved] A conflicted with B.\n\nprobes:\n  x: y\n");
+  assert.match(summary, /A conflicted with B/);
+  assert.match(summary, /state: resolved/);
 });

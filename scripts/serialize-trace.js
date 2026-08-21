@@ -28,7 +28,7 @@ const STITCH_TYPES = ["BRIDGE", "RESOLVES", "CONTRADICTS", "QUALIFIES"];
 // position tags like [PRIMARY]. Heads may be indented (sub-bullets under a
 // paragraph). Body runs to the next blank line or next marker line.
 const MARKER_HEAD = new RegExp(
-  "^\\s*\\[(" + MARKER_TYPES.join("|") + ")(?::([a-z-]+))?(?:\\s*->\\s*([a-z-]+))?\\]\\s*(.*)$"
+  "^\\s*\\[(" + MARKER_TYPES.join("|") + ")(?::([a-z-]+))?(?:\\s*(?:->|→)\\s*([a-z-]+))?\\]\\s*(.*)$"
 );
 // Stitch heads are searched anywhere on a line (not just at column 0) because
 // they can appear mid-sentence, at the tail of another marker's body line.
@@ -182,7 +182,7 @@ const conf = (state.thesis && state.thesis.confidence) || {};
 const R = typeof conf === "object" ? (conf.R != null ? conf.R : 0.5) : conf;
 const E = typeof conf === "object" ? (conf.E != null ? conf.E : 0.5) : conf;
 const C = typeof conf === "object" ? (conf.C != null ? conf.C : 0.5) : conf;
-const composite = ((R + E + C) / 3).toFixed(2);
+const lowest = Math.min(R, E, C).toFixed(2);
 
 // Determine final iteration text for buried-marker detection
 const finalIterBody = iterations.length > 0
@@ -245,7 +245,7 @@ ${triggerText}
 - Reasoning (R): ${R}
 - Evidence (E): ${E}
 - Conclusion (C): ${C}
-- Composite: ${composite}
+- Lowest: ${lowest}
 - Termination reason: ${terminationReason}
 `;
 
@@ -254,19 +254,19 @@ ${triggerText}
 // ============================================================
 
 // Build confidence trajectory table
-let trajectoryTable = "| Iteration | R    | E    | C    | Composite | Delta |\n";
-trajectoryTable +=    "|-----------|------|------|------|-----------|-------|\n";
+let trajectoryTable = "| Iteration | R    | E    | C    | Lowest | Delta |\n";
+trajectoryTable +=    "|-----------|------|------|------|--------|-------|\n";
 
-let prevComposite = null;
+let prevLowest = null;
 for (const iter of iterations) {
   if (iter.R != null) {
-    const comp = ((iter.R + iter.E + iter.C) / 3).toFixed(2);
-    const delta = prevComposite != null
-      ? (parseFloat(comp) - prevComposite >= 0 ? "+" : "") +
-        (parseFloat(comp) - prevComposite).toFixed(2)
+    const low = Math.min(iter.R, iter.E, iter.C).toFixed(2);
+    const delta = prevLowest != null
+      ? (parseFloat(low) - prevLowest >= 0 ? "+" : "") +
+        (parseFloat(low) - prevLowest).toFixed(2)
       : "\u2014";
-    trajectoryTable += `| ${iter.num}         | ${iter.R.toFixed(2)} | ${iter.E.toFixed(2)} | ${iter.C.toFixed(2)} | ${comp}     | ${delta} |\n`;
-    prevComposite = parseFloat(comp);
+    trajectoryTable += `| ${iter.num}         | ${iter.R.toFixed(2)} | ${iter.E.toFixed(2)} | ${iter.C.toFixed(2)} | ${low}   | ${delta} |\n`;
+    prevLowest = parseFloat(low);
   }
 }
 

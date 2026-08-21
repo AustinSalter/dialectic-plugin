@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync, utimesSync, readdirSync } from "node:fs";
+import { existsSync, writeFileSync, utimesSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { makeSandbox, writeState, writeScratchpad, writeArtifact, runHook, readState, BOTH } from "./helpers.mjs";
 
@@ -179,6 +179,17 @@ for (const impl of BOTH) {
     const r = runHook(sb, impl);
     assert.equal(r.status, 2);
     assert.match(r.stderr, /Memo promotion blocked/);
+  });
+
+  test(`[${impl}] corrupt state.json → exit 0, state.json left byte-unchanged`, () => {
+    const sb = makeSandbox();
+    const corrupt = "{ this is not valid json";
+    writeFileSync(sb.statePath, corrupt);
+    const before = readFileSync(sb.statePath, "utf8");
+    const r = runHook(sb, impl);
+    assert.equal(r.status, 0);
+    const after = readFileSync(sb.statePath, "utf8");
+    assert.equal(after, before, "state.json must be byte-identical after a corrupt-JSON run");
   });
 
   test(`[${impl}] refuted thesis + memo naming the refutation → promotes`, () => {
