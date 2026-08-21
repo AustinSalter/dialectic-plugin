@@ -29,7 +29,7 @@ Run all six against the framed thesis:
 | Implementation | Does this assume rational response? | Perverse/irrational response |
 | Survival | What observation would have killed this thesis this round — and did you go look for it? | Unfalsifiable drift |
 
-R rises only in a round where a kill was attempted and the thesis survived it. No attempt, no credit.
+R rises only in a round where the Survival probe reads ATTEMPTED_SURVIVED — a named observation, looked for, not found. No attempt, no credit.
 
 **For domain-specific probes:** See patterns/{domain}.md
 
@@ -45,7 +45,7 @@ Use `WebSearch` to verify or challenge key claims from the expansion pass. Budge
 
 For any web-sourced finding that changes a probe outcome, append `[WEB]` to the probe's rationale in the output yaml and state what changed. If a probe result would differ with updated evidence, state the original result and the revised result in the probe's rationale.
 
-**Saturation is a claim about searches, not a feeling.** Before this critique reports evidence as saturated, name the last two searches run and what each returned. "The remaining threads are confirmation-shaped" is a prediction; two named searches that came back with nothing new are evidence. If you cannot name them, the evidence is unsaturated — go run them.
+**Saturation is a claim about searches, not a feeling.** Before this critique reports evidence as saturated, name the last two searches run and what each returned. "The remaining threads are confirmation-shaped" is a prediction; two named searches that came back with nothing new are evidence. If you cannot name them, the evidence is unsaturated — run two disconfirming searches now and record them in the probe rationale.
 
 ## Preservation Gate (Required)
 
@@ -63,7 +63,7 @@ Before deciding, check for **amputation** — the failure mode where counter-arg
 
 One entry per `[COUNTER]` from expansion. Quote the counter. Quote the thesis text that changed in response — the words as they now stand, not a description of them. If nothing changed, write `nothing changed` and answer `should_it_have`.
 
-When a counter did change the thesis, classify the change: **progressive** — the new thesis forbids something the old one allowed (quote the forbidden thing) — or **degenerating** — it only excuses the counter. Two degenerating changes in a row mean the thesis is dying: REJECT or ELEVATE, never CONCLUDE.
+When a counter did change the thesis, classify the change: **progressive** — the new thesis forbids something the old one allowed (quote the forbidden thing) — or **degenerating** — it only excuses the counter. Two degenerating shifts across consecutive rounds — check thesis-history.md — mean the thesis is dying: REJECT or ELEVATE, never CONCLUDE.
 
 ```yaml
 amputation_check:
@@ -144,7 +144,7 @@ if_reject:
   counter_thesis: [the thesis the evidence actually supports — omit if none is visible]
 ```
 
-**REJECT is a success, not a failure.** A refuted thesis with a stated refuting basis is a finished piece of reasoning. If a counter-thesis is visible, write it to `counter_thesis` in state.json — the loop will re-enter once from it. If none is visible, the run ends as a refutation: distillation will produce a memo of why the thesis is wrong and what would resurrect it.
+**REJECT is a success, not a failure.** A refuted thesis with a stated refuting basis is a finished piece of reasoning. If the round's evidence supports a specific rival claim, write it to `counter_thesis` in state.json — the loop will re-enter once from it. If none is visible, the run ends as a refutation: distillation will produce a memo of why the thesis is wrong and what would resurrect it.
 
 A thesis earns standing by surviving attempts to kill it — Popper's point, and the reason the Survival probe asks where you looked. A thesis nobody tried to refute has nothing to report but its own elaboration; one that was tried and broke has told you something true about the world. The failure mode is not killing a thesis. It is a round where nothing could have.
 

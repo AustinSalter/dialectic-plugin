@@ -19,7 +19,7 @@ Not what it claims—what concern motivates it.
 
 **What are the rival hypotheses?**
 
-Write three working hypotheses before searching: two that answer the question and one that denies its premise ("there is no X here"; "keep the status quo"). Every search serves all three until one dies by evidence, not by neglect. A frame that was never rivaled was never tested.
+Write three working hypotheses before searching: two that answer the question and one that denies its premise ("there is no X here"; "keep the status quo"). Frame each search so its result could shift at least one rival, not just the favorite; a hypothesis dies only when a result contradicts it, never because you stopped looking. A frame that was never rivaled was never tested.
 
 **What altitude should we operate at?**
 
@@ -104,7 +104,7 @@ Five downstream sources are one source. One primary against four downstream is n
 
 **Stitch points.** When this source connects to one you've already read — bridges a gap, resolves a tension, sharpens a contradiction — name it as it happens: `[BRIDGE: A→B]`. The non-obvious findings live in the joins, not in any single source. If your output is converging on the obvious, you're missing the stitches.
 
-**Absence and provenance.** A summarizer's silence is testimony about the summary, not about the source. Never write "the source doesn't mention X" off a digest or a skim — an absence claim requires a targeted fetch that searched for X and missed, and until it has one it is a `[QUESTION]`, not `[EVIDENCE]`. Silence counts as evidence only when the source had reason to speak. Carry the citation inside the marker: an `[EVIDENCE]` without its source is a rumor. If no fetch was possible at all, say so — the whole pass is then training-data testimony.
+**Absence and provenance.** A summarizer's silence is testimony about the summary, not about the source. Never write "the source doesn't mention X" off a digest or a skim — an absence claim requires a targeted fetch that searched for X and missed, and until it has one it is a `[QUESTION]`, not `[EVIDENCE]`. Silence counts as evidence only when the source had reason to speak. Carry the citation on the marker line — `[EVIDENCE:web] quote — URL`. An `[EVIDENCE]` without its source is a rumor. If no fetch was possible at all, say so — the whole pass is then training-data testimony.
 
 **Reading heuristics:**
 - Read in the order fetched. Earlier sources frame later ones.

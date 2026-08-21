@@ -63,7 +63,7 @@ Run all five against each draft:
 | Conviction-Ink | Does every sentence advance the argument, provide evidence, or acknowledge risk? | Hedging, throat-clearing, decoration |
 | Threads | ≤3 independent argument threads held simultaneously? | Cognitive overload — compression failed |
 
-Each pass appends a `probe_results:` block to the scratchpad — one entry per probe, and each entry quotes the memo sentence it examined. A probe that names no sentence examined nothing.
+Each pass appends a `probe_results:` block to the scratchpad — one entry per probe, each quoting the memo sentence that decided its verdict. For whole-memo probes (Trace, Threads), quote the sentence that came closest to failing. A probe that names no sentence examined nothing.
 
 ```yaml
 probe_results:
