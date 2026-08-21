@@ -27,13 +27,16 @@ git clone https://github.com/AustinSalter/dialectic-plugin.git
 ## Features
 
 - **Iterative dialectic reasoning** — Expansion, compression, and critique passes that argue against themselves before concluding
-- **3D confidence tracking** — Robustness, evidence saturation, and domain determinacy replace single-scalar guesswork
+- **A thesis can die** — REJECT is a first-class outcome: one re-loop on a counter-thesis if the evidence supports a rival, or a refutation memo. Killed claims stay visibly dead in the spine
+- **Warrant gate** — The stop hook refuses any decision whose probe reasoning isn't externalized to the scratchpad. Verdicts without visible warrants don't advance the loop
+- **3D confidence tracking** — Robustness, evidence saturation, and domain determinacy replace single-scalar guesswork. Verdict language is bound by the lowest dimension — never an average
 - **Frame selection** — Calibrates altitude before searching. "Better docs" becomes "developer adoption → switching costs → infrastructure moat"
 - **Two-loop architecture** — Reasoning explores (messy, exhaustive). Distillation compresses (every sentence earns its place). A stop hook enforces the boundary.
 - **Conviction memo output** — Structured for action: headline insight, the bet, falsification triggers, first Monday move
 - **Adversarial probes** — Five distillation probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads) gate the final memo before it ships
 - **Holdout validation** — Partitioned adversarial audit via isolated subagent. Catches buried evidence, confidence inflation, and question drift the internal critique missed
 - **Forge synthesis** — Translates dialectic output into engineering build specs. Evidence becomes constraints, counters become risks, tensions become decision points with seam locations
+- **Hardened loop mechanics** — Artifacts checkpoint at every terminal transition, abandoned sessions auto-archive instead of rotting, a liveness beacon (`last_hook_ts`) makes hook failures provable from state alone, and a 50-test suite exercises both hook implementations
 
 ## Usage
 
@@ -99,12 +102,14 @@ This plugin engineers the conditions for what the Greeks called *aporia*: produc
  │  Search.    │      │             │      │              │
  └─────────────┘      └─────────────┘      └──────┬───────┘
        ▲                                          │
-       │               ┌──────────────────────────┼────────────┐
-       │               │                          │            │
-       │               ▼                          ▼            ▼
-       └────── [CONTINUE]                   [ELEVATE]    [CONCLUDE]
-               loop back                  reframe thesis       │
-                                                               │
+       │               ┌───────────────┬──────────┼────────────┐
+       │               │               │          │            │
+       │               ▼               ▼          ▼            ▼
+       └────── [CONTINUE]        [REJECT]   [ELEVATE]    [CONCLUDE]
+               loop back      thesis dies: reframe thesis      │
+                              counter-thesis                   │
+                              re-loop, or                      │
+                              refutation memo                  │
                                                     ┌──────────┴──────────┐
                                                     │     HOLDOUT         │
                                                     │  (if --holdout)     │
@@ -150,7 +155,7 @@ Each phase operationalizes a move from the dialectical tradition — Socratic cr
 
 **Compression** distills to three things: the thesis, the strongest opposition, and the *joint* — the point where both feel true. The joint carries across cycles. Everything else dies.
 
-**Critique** tries to break the thesis. A preservation gate prevents abstraction drift — you can't elevate without first articulating what the thesis got right.
+**Critique** tries to break the thesis — and now keeps score. The Survival probe records whether a kill was attempted and whether the thesis came through it; R rises only on survived attempts, never on unopposed rounds. A preservation gate prevents abstraction drift — you can't elevate without first articulating what the thesis got right. And when the evidence breaks the core claim, REJECT ends it honestly: one re-loop on a counter-thesis if the round's evidence supports a rival, otherwise a refutation memo. Knowing why a thesis is wrong is a conviction too.
 
 **Distillation** extracts the spine (load-bearing claims + causal chain), drafts against the SYNTHESIS.md spec, and runs five probes (Trace, Tension, Sufficiency, Conviction-Ink, Threads). Minimum 2 passes; pass 2+ is adversarial.
 
@@ -162,7 +167,7 @@ The loops are structurally independent. The reasoning loop explores — messy, e
 
 ### Termination
 
-Reasoning ends when critique CONCLUDEs and the iteration floor is met, confidence saturates (delta < 0.05 for two cycles), or max iterations hit. If `--holdout` is enabled, holdout runs automatically before transitioning to the synthesis-ready state. Distillation ends when all five probes pass and the compression gate is satisfied. Forge ends when all seven quality checks pass.
+Reasoning ends when critique CONCLUDEs and the iteration floor is met, when it REJECTs with no viable counter-thesis (the run ends as a refutation), when confidence saturates (delta < 0.05 for two cycles), or at max iterations. The stop hook enforces all of it — including the warrant gate: a decision with no externalized probe reasoning is bounced back, not honored. If `--holdout` is enabled, holdout runs automatically before transitioning to the synthesis-ready state. Distillation ends when all five probes pass and the compression gate is satisfied. Forge ends when all seven quality checks pass.
 
 ### 3D Confidence
 
@@ -170,11 +175,13 @@ Single-scalar confidence creates two problems. First, *bad infinity*: the model 
 
 Three dimensions solve both:
 
-- **R (Robustness)** — does the thesis survive adversarial pressure? R can rise even as the thesis changes, because absorbing an objection makes the argument stronger.
+- **R (Robustness)** — does the thesis survive adversarial pressure? R rises only in rounds where a kill was attempted and the thesis survived it. No attempt, no credit — absorption alone is not evidence of strength.
 - **E (Evidence saturation)** — how much relevant evidence has been integrated? Per-iteration cap of 0.15 prevents inflation. Evidence gate requires E ≥ 0.4 before reframing is allowed.
 - **C (Domain determinacy)** — how knowable is this question *in principle*? Physics: 0.7-0.9. Geopolitics: 0.2-0.4. C is the ceiling — it tells the system when to stop pushing, not when to keep trying.
 
 A thesis at R=0.65, E=0.70, C=0.38 is ready to conclude. A single scalar would average to ~0.58 and keep iterating, chasing convergence the domain prevents. The three dimensions make the *source* of uncertainty legible, so each drop leads to a different next move.
+
+The numbers stay out of the memo, but they bound its verbs: verdict language keys off the **lowest** of R, E, C — a chain is as strong as its weakest dimension, and averaging lets a falling minimum hide behind a rising mean. Below 0.5, the memo may only hold and monitor; commitment verbs (ADOPT, ACQUIRE, ENTER) are earned at 0.7.
 
 Confidence should be non-monotonic. A dip means a critique found a real problem; recovery means the thesis absorbed it. Monotonic ascent is rationalization.
 
@@ -184,9 +191,9 @@ The architecture draws from thinkers who treated reasoning as adversarial and it
 
 **Socrates** gave us *elenchus* — cross-examination that creates the conditions for discovering your frame is wrong. **Aristotle** contributed *stasis theory* — not all disagreements are equal; are we arguing about facts, definitions, values, or procedures? The expansion pass classifies the question's stasis level before searching. **Hegel's** *Aufhebung* — negation that preserves what it negates — is the critique pass's preservation gate: you can't elevate without first articulating what the thesis got right. **Walter Benjamin** drew the distinction between information (explains itself on arrival) and narrative (lodges in the reader and unfolds). The reasoning loop produces information; the distillation loop transforms it into narrative. This is why the plugin has two loops, not one.
 
-The conviction memo format descends from **Cicero** — propositio, narratio, refutatio, peroratio — because Roman juries had short attention spans and the advocate who wasted their time lost. The same constraint applies to anyone reading your analysis. **Orwell's** compression axioms ("omit needless words") become formal probes: does every sentence advance the argument, provide evidence, or acknowledge risk?
+The conviction memo format descends from **Cicero** — propositio, narratio, refutatio, peroratio — because Roman juries had short attention spans and the advocate who wasted their time lost. The same constraint applies to anyone reading your analysis. **Popper** grounds the newest outcome: a refutation is a success, not a failure, so the loop scores kills attempted and survived rather than objections politely absorbed. Other mechanisms run unnamed in the operational files — rival working hypotheses in expansion, evidence weighed by what it rules out in compression, estimative verdict vocabulary in synthesis — with credit where it belongs:
 
-[Read the full philosophical foundations →](PHILOSOPHICAL-FOUNDATIONS.md)
+[What each mechanism took from its sources →](skills/dialectic/RESOURCES.md) · [Full philosophical foundations →](PHILOSOPHICAL-FOUNDATIONS.md)
 
 ## Plugin Structure
 
@@ -209,13 +216,16 @@ dialectic-plugin/
 │   ├── MARKERS.md          # Semantic marker definitions
 │   ├── PATTERNS.md         # Strategic patterns library
 │   ├── HOLDOUT.md          # Holdout adversarial audit instructions
-│   └── FORGE.md            # Forge build spec synthesis instructions
+│   ├── FORGE.md            # Forge build spec synthesis instructions
+│   └── RESOURCES.md        # Source layer — one line per mechanism
 ├── hooks/
 │   └── hooks.json          # Stop hook config
 ├── scripts/
 │   ├── stop-hook.sh        # Loop controller (macOS/Linux)
 │   ├── stop-hook.js        # Loop controller (cross-platform)
-│   └── serialize-trace.js  # Trace serialization for holdout
+│   ├── serialize-trace.js  # Trace serialization for holdout
+│   └── export-session.py   # Session JSONL → markdown export
+├── tests/                  # node --test suite (both hook impls, serializer golden tests)
 └── README.md
 ```
 
