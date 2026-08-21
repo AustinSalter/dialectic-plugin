@@ -75,6 +75,14 @@ Run the expansion protocol in `skills/dialectic/EXPANSION.md`, including its fra
 
 Append the complete expansion output — tagged evidence, frame labels, and reasoning — to `.claude/dialectic/scratchpad.md`.
 
+## Step 2.5: FORMATION Pass (iteration 1 only)
+
+On the first iteration only, after the expansion output is in the scratchpad, run the formation protocol in `skills/dialectic/FORMATION.md`: promote the frame's rival hypotheses to candidate cases, score them for winnability, commit to one, and write the `case` object to state.json. The selected case's claim becomes `thesis.current`.
+
+Append the full formation block — candidates, scores, selection reasoning — to `.claude/dialectic/scratchpad.md`.
+
+On iterations 2+, skip this step. Formation re-entry happens only through ELEVATE — the hook's elevation prompt routes back through FORMATION.md.
+
 ## Step 3: COMPRESSION Pass (Antithesis)
 
 Run the compression protocol in `skills/dialectic/COMPRESSION.md`. Update confidence as three dimensions (R, E, C), not a single scalar.
@@ -122,7 +130,7 @@ This applies to every decision:
 
 ## State Ownership
 
-Two writers share `state.json`. The hook owns: `iteration`, `loop`, `phase` on transitions, `decision` nulling, `distillation_iteration`, `forge_iteration`, `reject_passes`, `last_hook_ts`. You own everything else. Before writing, re-read the file — the hook may have changed it since you last saw it. Update single fields with jq or python; never rewrite the file from memory and never string-edit it.
+Two writers share `state.json`. The hook owns: `iteration`, `loop`, `phase` on transitions, `decision` nulling, `distillation_iteration`, `forge_iteration`, `reject_passes`, `last_hook_ts`. You own everything else, including the `case` object formation writes — the hook never touches it. Before writing, re-read the file — the hook may have changed it since you last saw it. Update single fields with jq or python; never rewrite the file from memory and never string-edit it.
 
 ## If the Hook Doesn't Fire
 

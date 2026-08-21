@@ -106,6 +106,6 @@ The live run reached D's substance by iteration 3 and still led the memo with A'
 
 Sources: RESOURCES.md
 
-## Integration (wiring status)
+## Integration
 
-Formation runs between the first EXPANSION and the first COMPRESSION, and on every ELEVATE re-entry. Wiring required before it is live: a step in `commands/dialectic.md` (after Step 2, first iteration only), an ELEVATE re-feed pointing here in the stop hook's elevation prompt, and CRITIQUE reading `case.hard_core` / `case.excludes` to classify amputations and off-ground counters. The model owns `case`; the hook never writes it.
+Formation runs between the first EXPANSION and the first COMPRESSION (`commands/dialectic.md` Step 2.5, iteration 1 only), and on every ELEVATE — the stop hook's elevation prompt re-feeds through this file, with the critique's elevated thesis entering as a candidate, not the winner. CRITIQUE's Case Ground section reads `case.hard_core`, `case.protective_belt`, `case.excludes`, and `case.definitions` to classify counters. The model owns `case`; the hook never writes it. Runs with no `case` object (pre-formation sessions) degrade gracefully: the elevate re-feed falls back to direct adoption, and CRITIQUE skips Case Ground.
