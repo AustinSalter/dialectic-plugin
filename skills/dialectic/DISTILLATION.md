@@ -18,6 +18,17 @@ If no scratchpad exists, reasoning loop hasn't run. Stop.
 
 ## Spine Extraction (first distillation iteration only)
 
+**Mine, don't index.** The scratchpad is the ore body; the thesis string is one assay of it. `thesis.current` is a palimpsest — its clause order records the history of rewrites, not the ranking of claims. The elevation that reframed iteration 1 will still sit at the front of the sentence in iteration 5, whether or not it is still the point. Do not inherit its order.
+
+Re-read the full scratchpad and rank every surviving claim by decision value:
+
+- **Kills survived** — how many named kill attempts did this claim pass? Count the Survival probes that targeted it.
+- **Confidence moved** — did finding it shift R or E? Check the confidence notes.
+- **Price attached** — does it name an observable market price or measurable quantity?
+- **Counterparty named** — does it say who is wrong and why?
+
+The spine's `thesis:` leads with the highest-ranking claim. In an adversarial loop the sharpest claims are usually the latest — they survived the most kills — while the earliest elevation is usually scaffolding by the end. Scaffolding goes in `evolution:`, not the thesis.
+
 Walk the scratchpad chronologically. Determine what survived:
 
 | Marker | Survived if... | Dies if... |
@@ -51,9 +62,20 @@ A claim with status `killed` must appear in the memo's refutatio with what kille
 
 If `thesis.status` is `"refuted"`, the memo's verdict is the refutation: state what the thesis claimed, the refuting basis (quoted from the spine), and what evidence would resurrect it. Same probes, same compression gate — a refutation memo is still a conviction memo.
 
+### Tailings (what the mine didn't take)
+
+Spine extraction is itself a compression, and nothing above audits what it drops. After writing the spine, sweep the scratchpad once more for:
+
+- `[THREAD]`s never explored and `not_yet_investigated` items never picked up
+- `[INSIGHT]`s and `[BRIDGE]`s that appear in no claim
+- Evidence atoms with strength ≥ 4 attached to no claim
+- Tensions carried as unresolved that the memo never mentions
+
+Write them to `tailings:` in spine.yaml. On pass 1, give each tailing a disposition: `promote` (it belonged in a claim — add it) or `discard` with a one-line reason. A tailing with no disposition blocks CONCLUDE. Check the tailings when drafting Disconfirmation Triggers — unexplored threads are where the disconfirmation usually lives.
+
 ## Distillation Probes
 
-Run all five against each draft:
+Run all six against each draft:
 
 | Probe | Question | Failure Mode |
 |-------|----------|--------------|
@@ -62,6 +84,9 @@ Run all five against each draft:
 | Sufficiency | Could the reader act on this without the scratchpad? | Missing decision-relevant information |
 | Conviction-Ink | Does every sentence advance the argument, provide evidence, or acknowledge risk? | Hedging, throat-clearing, decoration |
 | Threads | ≤3 independent argument threads held simultaneously? | Cognitive overload — compression failed |
+| Position | Does the memo name a mispricing and a counterparty who would recognize themselves as being called wrong? | Mean-fallacy convergence — "all options are one thing" ranks nothing and offends no one |
+
+**Position probe detail:** A convergence-shaped lead ("X and Y are really the same phenomenon") is a mechanism, not a headline — demote it to the Leap's supporting logic unless the unification itself changes an allocation. The test is exclusion: the memo must tell the reader what NOT to do that reasonable people are currently doing, and name who is on the other side of the bet. If everyone the memo mentions could read it and feel confirmed, the probe fails.
 
 Each pass appends a `probe_results:` block to the scratchpad — one entry per probe, each quoting the memo sentence that decided its verdict. For whole-memo probes (Trace, Threads), quote the sentence that came closest to failing. A probe that names no sentence examined nothing.
 
@@ -81,6 +106,7 @@ Cannot conclude without answering:
 1. **What was lost?** Name specific claims, evidence, or tensions from the spine that don't appear in the memo. For each: is the loss acceptable (not decision-relevant) or structural (breaks the argument)?
 2. **What was elevated?** Where does the memo show a counter-argument *making the thesis stronger* rather than just being noted as a risk?
 3. **What is the shortest version?** Could any sentence be removed without breaking the argument? If yes, remove it.
+4. **What jargon did the run coin?** List every term in the memo that appears in the spine or scratchpad but not in the original prompt or in common usage. Compression rewards coined shorthand; deliverables must pay it back out. Each coinage is either introduced by its plain-language mechanism before first use, or replaced with the mechanism itself.
 
 *If you can't answer #1, you haven't compared against the spine. Return to trace probe.*
 
@@ -88,13 +114,14 @@ Cannot conclude without answering:
 
 | Decision | When | Required Output |
 |----------|------|-----------------|
-| CONCLUDE | All 5 probes pass + compression gate complete | Decision in state.json + `[ANALYSIS_COMPLETE]` |
+| CONCLUDE | All 6 probes pass + compression gate complete | Decision in state.json + `[ANALYSIS_COMPLETE]` |
 | CONTINUE | Any probe fails or gate incomplete | Which probe failed + specific fix |
 
 **CONCLUDE only when you can state:**
 - Every load-bearing claim is present
 - Every counter-argument elevates rather than amputates
 - No sentence can be removed without structural loss
+- Every tailing has a disposition; every coined term is unpacked before use
 
 Write decision to state.json `decision` field, then **stop responding**. The stop hook reads the decision and either allows exit (if passes ≥ minimum and decision is CONCLUDE) or re-feeds you for the next pass.
 
@@ -133,6 +160,12 @@ spine:
   open_risks:
     - risk: "<what if>"
       severity: high  # high | medium | low
+
+  tailings:
+    - item: "<dropped thread, insight, or evidence>"
+      source: "<scratchpad location — iteration N, marker type>"
+      disposition: promote  # promote | discard
+      reason: "<one line>"
 ```
 
 ### Memo

@@ -16,6 +16,9 @@ Most synthesis falls into "Bad Infinity" — endless "on the one hand, on the ot
 | Hedge-betting | Position-taking with brief refutatio |
 | "Moderate confidence reflects tension" | "High conviction until trigger Z" |
 | Preserve both sides | Commit, with explicit off-ramps |
+| "All four options converge on one truth" | "Option B — and only its cheap tail" |
+
+Bad Infinity has a confident cousin: the mean fallacy, which refuses to choose by unifying instead of hedging. A synthesis that ranks nothing is Bad Infinity wearing conviction's clothes. When the reasoning loop produced a unification (elevations often do), the memo uses it as mechanism and still returns a ranked, exclusionary answer.
 
 ## Core Principle
 
@@ -29,7 +32,13 @@ Most synthesis falls into "Bad Infinity" — endless "on the one hand, on the ot
 
 The *propositio*: the claim compressed to a sentence. This is an enthymeme — the conclusion with enough of the argument that the reader can reconstruct the rest. If the reader needs more than one sentence to understand the recommendation, the analysis hasn't converged.
 
-Test: *is this falsifiable?* "Distribution controls value" is. "This is a complex situation" is not.
+Three tests, all required:
+
+- *Falsifiable?* "Distribution controls value" is. "This is a complex situation" is not.
+- *Counterparty?* Who loses if this is right, and would they recognize themselves? A headline nobody would dispute is a truism, not an insight.
+- *Exclusionary?* What does it tell the reader NOT to do that reasonable people are doing right now?
+
+"X and Y are really the same thing" fails the second and third tests. Convergence is mechanism for the Leap, never a headline. The headline also uses no term the run coined — if the claim needs the run's private vocabulary to state, it has not been compressed, only abbreviated.
 
 ### 2. Situation
 
