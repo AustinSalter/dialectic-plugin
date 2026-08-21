@@ -249,3 +249,29 @@ test("[js] stale + archive-setup failure (blocked output_dir parent) → exit 0,
   assert.match(r.stderr, /archiving failed — leaving \.claude\/dialectic in place/);
   assert.ok(existsSync(sb.stateDir), "state dir left in place after archive-setup failure");
 });
+
+// Regression: hooks inherit the persistent shell's cwd, which may have wandered
+// anywhere. CLAUDE_PROJECT_DIR is the harness-provided anchor. (2026-08-21 root cause)
+import { spawnSync } from "node:child_process";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+for (const impl of BOTH) {
+  test(`[${impl}] hook anchors to CLAUDE_PROJECT_DIR when cwd has wandered`, () => {
+    const sb = makeSandbox();
+    writeState(sb, { iteration: 1, decision: null });
+    writeScratchpad(sb, { probeBlocks: 1 });
+    const wandered = join(sb.dir, ".claude", "dialectic"); // worst case: inside the state dir itself
+    const cmd = impl === "sh"
+      ? { file: "bash", args: [join(REPO_ROOT, "scripts", "stop-hook.sh")] }
+      : { file: "node", args: [join(REPO_ROOT, "scripts", "stop-hook.js")] };
+    const r = spawnSync(cmd.file, cmd.args, {
+      cwd: wandered,
+      encoding: "utf8",
+      env: { ...process.env, CLAUDE_PROJECT_DIR: sb.dir, DIALECTIC_HOOK_IMPL: impl === "js" ? "node" : "" },
+    });
+    assert.equal(r.status, 2, "hook must find state via CLAUDE_PROJECT_DIR and continue the loop");
+    assert.match(r.stdout, /Dialectic iteration/);
+    assert.match(readState(sb).last_hook_ts ?? "", /^\d{4}/);
+  });
+}

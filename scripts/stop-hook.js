@@ -10,6 +10,12 @@
 const fs = require("fs");
 const path = require("path");
 
+// Hooks inherit the session shell's cwd, which may have wandered anywhere.
+// CLAUDE_PROJECT_DIR is the harness-provided project root — anchor there.
+if (process.env.CLAUDE_PROJECT_DIR && fs.existsSync(process.env.CLAUDE_PROJECT_DIR)) {
+  try { process.chdir(process.env.CLAUDE_PROJECT_DIR); } catch (_) {}
+}
+
 // On macOS/Linux, delegate to the bash hook
 if (process.platform !== "win32" && process.env.DIALECTIC_HOOK_IMPL !== "node") {
   const { execFileSync } = require("child_process");

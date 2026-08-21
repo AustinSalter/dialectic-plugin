@@ -8,6 +8,12 @@
 # The primary hook is stop-hook.js (cross-platform, no jq dependency).
 # This script is kept as a bash-native alternative.
 
+# Hooks inherit the session shell's cwd, which may have wandered anywhere.
+# CLAUDE_PROJECT_DIR is the harness-provided project root — anchor there.
+if [ -n "$CLAUDE_PROJECT_DIR" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
+  cd "$CLAUDE_PROJECT_DIR" || exit 0
+fi
+
 STATE_DIR=".claude/dialectic"
 STATE_FILE="$STATE_DIR/state.json"
 PROMPT_FILE="$STATE_DIR/prompt.md"

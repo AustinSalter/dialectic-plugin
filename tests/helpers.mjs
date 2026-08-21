@@ -55,7 +55,7 @@ export function runHook(sandbox, impl) {
   return spawnSync(cmd.file, cmd.args, {
     cwd: sandbox.dir,
     encoding: "utf8",
-    env: { ...process.env, DIALECTIC_HOOK_IMPL: impl === "js" ? "node" : "" },
+    env: { ...process.env, CLAUDE_PROJECT_DIR: sandbox.dir, DIALECTIC_HOOK_IMPL: impl === "js" ? "node" : "" },
   });
 }
 

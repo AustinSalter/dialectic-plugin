@@ -10,6 +10,11 @@
 const fs = require("fs");
 const path = require("path");
 
+// Invoked from a shell whose cwd may have wandered; anchor to the project root.
+if (process.env.CLAUDE_PROJECT_DIR && fs.existsSync(process.env.CLAUDE_PROJECT_DIR)) {
+  try { process.chdir(process.env.CLAUDE_PROJECT_DIR); } catch (_) {}
+}
+
 const STATE_DIR = ".claude/dialectic";
 const STATE_FILE = path.join(STATE_DIR, "state.json");
 const HOLDOUT_DIR = path.join(STATE_DIR, "holdout_input");
