@@ -107,6 +107,7 @@ Cannot conclude without answering:
 2. **What was elevated?** Where does the memo show a counter-argument *making the thesis stronger* rather than just being noted as a risk?
 3. **What is the shortest version?** Could any sentence be removed without breaking the argument? If yes, remove it.
 4. **What jargon did the run coin?** List every term in the memo that appears in the spine or scratchpad but not in the original prompt or in common usage. Compression rewards coined shorthand; deliverables must pay it back out. Each coinage is either introduced by its plain-language mechanism before first use, or replaced with the mechanism itself.
+5. **Where are the seams?** Every causal connective in the memo — because, which is why, so, therefore — joins either two parts of one evidence atom or an evidence atom to a `causal_chain` inference. List the connectives of the second kind. Each must wear its status in the sentence: "the bet is", "the reading here is", or an equivalent marker that tells the reader this link is the argument, not the source. A sourced-sounding sentence that fuses evidence with an unsourced causal claim is inference laundering — the reader must be able to tell evidence from argument at the sentence level, because the inferences are exactly what the disconfirmation triggers exist to test.
 
 *If you can't answer #1, you haven't compared against the spine. Return to trace probe.*
 
@@ -122,6 +123,7 @@ Cannot conclude without answering:
 - Every counter-argument elevates rather than amputates
 - No sentence can be removed without structural loss
 - Every tailing has a disposition; every coined term is unpacked before use
+- Every causal connective is either evidenced or marked as the argument's inference
 
 Write decision to state.json `decision` field, then **stop responding**. The stop hook reads the decision and either allows exit (if passes ≥ minimum and decision is CONCLUDE) or re-feeds you for the next pass.
 
