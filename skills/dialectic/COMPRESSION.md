@@ -148,6 +148,8 @@ R and E drive whether you continue. C drives how you write the conclusion.
 
 **ELEVATE**: R and E adequate but C contradicts the evidence pattern.
 
+Sources: RESOURCES.md
+
 ---
 
 ## CRITICAL: Stop After Writing Decision

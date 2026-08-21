@@ -12,7 +12,7 @@ Five independent intellectual traditions arrived at the same constraints on what
 - **Sufficient** (Fisher + Aristotle) — contain everything the decision-maker needs, nothing they don't
 - **Minimal** (Kolmogorov + Tufte + Orwell) — the shortest description that preserves all structural complexity
 - **Structure-preserving** (Eilenberg & Mac Lane) — compress the nodes; you cannot break the edges
-- **Cognitively bounded** (Miller + Ericsson) — no more than three expert-recognizable threads held simultaneously
+- **Cognitively bounded** (Miller) — no more than three expert-recognizable threads held simultaneously
 
 The distillation loop's five probes — Tension, Sufficiency, Conviction-Ink, Trace, Threads — and its Compression Gate operationalize these constraints. Each section below traces how one tradition arrived at its constraint, and how that constraint became an operational test.
 
@@ -26,8 +26,6 @@ The failure mode is amputation: a memo that says "AGI risk is low-probability" h
 
 **Implementation.** The **Tension probe** asks: "Does each counter-argument *strengthen* the thesis, not just get dismissed?" The **Compression Gate** requires pointing to specific sublation in the text — where a counter-argument makes the thesis stronger. The **Preservation Gate** in the critique loop forces the same discipline earlier: before elevating a thesis, you must name what it correctly identifies and what any elevation must retain. Amputation can enter at two stages — when reasoning concludes and when compression ships — so the architecture checks for it at both.
 
-**Sources:** Hegel, *Science of Logic* (1812–1816), §185–§187 on Aufhebung. *Phenomenology of Spirit* (1807), §178–§196 (master-slave dialectic as sublation in self-consciousness). Brandom, *A Spirit of Trust* (2019) for contemporary analytic-pragmatist reading.
-
 ---
 
 ## 2. Sufficiency: Compress for the Decision, Not the Analysis
@@ -39,8 +37,6 @@ Aristotle's enthymeme extends this from information theory to rhetoric. The rhet
 Not all analyses compress into fixed-length memos. The Pitman-Koopman-Darmois theorem establishes that only exponential-family distributions admit finite-dimensional sufficient statistics. Some problems have irreducible complexity. The **Escape Hatch** — triggered when max iterations are reached and confidence remains below 0.5 — is the system's acknowledgment of this limit.
 
 **Implementation.** The **Sufficiency probe** asks: "Could the reader act on this without the scratchpad?" The enthymeme sharpens this: the best compression doesn't merely omit unnecessary detail — it leaves strategic space for the reader's expertise to complete the argument.
-
-**Sources:** Fisher, "On the Mathematical Foundations of Theoretical Statistics" (1922). Aristotle, *Rhetoric*, I.2 (1356a–1356b) on the enthymeme. Polanyi, *The Tacit Dimension* (1966) on tacit knowledge as partially incompressible.
 
 ---
 
@@ -56,8 +52,6 @@ Orwell's compression axioms ("if it is possible to cut a word out, always cut it
 
 **Implementation.** The **Conviction-Ink probe** asks: "Does every sentence advance the argument, provide evidence, or acknowledge risk? If not, cut it." The **Compression Gate** question — "Could any sentence be removed without breaking the argument?" — is the operational Kolmogorov test. If yes, the memo hasn't reached its minimal description.
 
-**Sources:** Kolmogorov, "Three Approaches to the Definition of the Quantity of Information" (1965). Rissanen, "Modeling by the Shortest Data Description" (1978) on Minimum Description Length. Tufte, *The Visual Display of Quantitative Information* (2001), ch. 6. Orwell, "Politics and the English Language" (1946).
-
 ---
 
 ## 4. Structure Preservation: Compress the Nodes, Not the Edges
@@ -68,50 +62,18 @@ The spine exists as an intermediate artifact for this reason. The scratchpad rec
 
 **Implementation.** The **Trace probe** asks: "Every load-bearing claim in the memo? Every memo claim in the spine?" This is the bidirectional morphism check — nothing dropped, nothing unsupported. A memo that states the conclusion without intermediate reasoning has broken the composition law: the reader cannot trace how A led to B led to C.
 
-**Sources:** Eilenberg and Mac Lane, "General Theory of Natural Equivalences" (1945). Mac Lane, *Categories for the Working Mathematician* (1971/1998).
-
 ---
 
 ## 5. Cognitive Ceiling: Compression Must Respect the Reader
 
 Miller's "magical number seven" established that short-term memory holds 7±2 items — but the critical insight was that items vary enormously in information content. A chess novice sees 25 pieces; a grandmaster sees 5–6 configurations. Each configuration is a single "chunk" containing vastly more information. The expert hasn't expanded memory — they've compressed the input.
 
-Ericsson and Kintsch's Long-Term Working Memory theory explains how: experts develop retrieval structures in long-term memory that bypass the short-term bottleneck. A physician hearing symptoms matches the pattern to a stored diagnostic schema, treating the whole cluster as one chunk.
+The mechanism is retrieval structure: expertise builds addresses in long-term memory that bypass the short-term bottleneck. A physician hearing symptoms matches the pattern to a stored diagnostic schema, treating the whole cluster as one chunk.
 
 The distillation loop's thread constraint operationalizes this for the memo's audience. Five iterations of reasoning must collapse into recognizable strategic patterns that the reader's expert schema can process as single units. If the memo forces the reader to hold more than three independent threads simultaneously, the compression has failed — not because information was lost, but because it wasn't reorganized into chunks the reader's expertise can absorb.
 
 **Implementation.** The **Threads probe** asks: "≤3 independent argument threads held simultaneously?" This is Miller's constraint applied to the memo's architecture. If you can remove one thread without the argument collapsing, that thread is decoration, not structure.
 
-**Sources:** Miller, "The Magical Number Seven, Plus or Minus Two" (1956). Ericsson and Kintsch, "Long-Term Working Memory" (1995).
-
 ---
 
-## Bibliography
-
-Aristotle. *Rhetoric*. George A. Kennedy, trans. *On Rhetoric: A Theory of Civic Discourse*, 2nd ed. Oxford University Press, 2007.
-
-Brandom, Robert B. *A Spirit of Trust: A Reading of Hegel's Phenomenology*. Harvard University Press, 2019.
-
-Eilenberg, Samuel and Mac Lane, Saunders. "General Theory of Natural Equivalences." *Transactions of the American Mathematical Society*, vol. 58, no. 2, pp. 231–294, 1945.
-
-Ericsson, K. Anders and Kintsch, Walter. "Long-Term Working Memory." *Psychological Review*, vol. 102, no. 2, pp. 211–245, 1995.
-
-Fisher, Ronald A. "On the Mathematical Foundations of Theoretical Statistics." *Philosophical Transactions of the Royal Society, Series A*, vol. 222, pp. 309–368, 1922.
-
-Hegel, G.W.F. *Phenomenology of Spirit*. A.V. Miller, trans. Oxford University Press, 1977.
-
-Hegel, G.W.F. *Science of Logic*. A.V. Miller, trans. Humanities Press, 1969.
-
-Kolmogorov, Andrey N. "Three Approaches to the Definition of the Quantity of Information." *Problems of Information Transmission*, vol. 1, no. 1, pp. 1–7, 1965.
-
-Mac Lane, Saunders. *Categories for the Working Mathematician*, 2nd ed. Springer, 1998.
-
-Miller, George A. "The Magical Number Seven, Plus or Minus Two." *Psychological Review*, vol. 63, no. 2, pp. 81–97, 1956.
-
-Orwell, George. "Politics and the English Language." *Horizon*, April 1946.
-
-Polanyi, Michael. *The Tacit Dimension*. Doubleday, 1966.
-
-Rissanen, Jorma. "Modeling by the Shortest Data Description." *Automatica*, vol. 14, pp. 465–471, 1978.
-
-Tufte, Edward R. *The Visual Display of Quantitative Information*, 2nd ed. Graphics Press, 2001.
+**Sources:** `skills/dialectic/RESOURCES.md` — one annotated line per text, stating what the mechanism took from it.

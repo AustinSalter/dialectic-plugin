@@ -97,3 +97,5 @@ When compressing marked content:
 6. **Stitch markers outrank single-source findings.** A `[BRIDGE: A→B]` that holds is more compelling than three sources independently saying the same thing.
 7. **Aligned-incentive primary sources need a non-aligned corroborator** before their load-bearing claims become validated insights.
 8. **A claim inherits its source or loses standing.** `[EVIDENCE:web]` without its URL compresses at strength ≤ 2, and compression copies the source forward with the claim.
+
+Sources: RESOURCES.md

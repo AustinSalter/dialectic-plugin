@@ -225,6 +225,8 @@ If the memo has a title line (e.g., `# NuServ Series B: Investment Committee Mem
 
 Do not change any content — only headers. The probes already validated the substance; this is a formatting pass only.
 
+Sources: RESOURCES.md
+
 ## CRITICAL: Stop After Each Distillation Pass
 
 After completing one pass (spine + draft + probes on pass 1, or revisions + probes on pass 2+), write your decision to `state.json` and **stop responding immediately**. Do not begin the next pass. Do not write to memo-final.md — the stop hook promotes the draft on conclude. Do not set `loop: "complete"` yourself. Do not remove evidence from state. The stop hook owns all transitions — it reads `state.json`, enforces the minimum pass requirement, and re-feeds you for the next pass or finalizes the session.

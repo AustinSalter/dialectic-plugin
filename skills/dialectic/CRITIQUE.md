@@ -198,6 +198,8 @@ if_elevate:
 | Policy | Implementation gap, precedent validity, institutional response | patterns/policy.md |
 | Disruption | Incumbent response, cost curve, metric shift, physics vs politics | patterns/disruption.md |
 
+Sources: RESOURCES.md
+
 ---
 
 ## CRITICAL: Stop After Writing Decision

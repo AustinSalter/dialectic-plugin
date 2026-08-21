@@ -159,6 +159,8 @@ Distillation is a loop, not a single pass. The first draft is never the final me
 
 Before finalizing, test every section against every other section. If two sections make the same point, one of them is redundant. The Bet should not restate the Leap. The Disconfirmation Triggers should not restate the Decision Gate. The Situation should not contain evidence that belongs in the Leap. Each section has one job. If it's doing another section's job, cut the duplicate.
 
+Sources: RESOURCES.md
+
 ## Completion Token
 
 End synthesis with exactly:

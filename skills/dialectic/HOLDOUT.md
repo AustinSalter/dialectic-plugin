@@ -204,3 +204,5 @@ Write your report in EXACTLY this format to the output file:
 - If the evidence genuinely supports the thesis and the reasoning is sound, say so. VALIDATED is a valid outcome.
 - Do not invent evidence for the inversion. Use only what appears in the trace.
 - Confidence adjustments should be conservative. Move dimensions by at most 0.15 unless you found severe structural problems.
+
+Sources: RESOURCES.md

@@ -219,3 +219,5 @@ not_yet_investigated:
 ```
 
 Ready for critique pass.
+
+Sources: RESOURCES.md
