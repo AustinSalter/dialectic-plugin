@@ -386,7 +386,7 @@ if (loop === "reasoning") {
       log("================================================");
 
       blockStop(
-        `The critique determined the thesis needs elevation — a fundamental reframe. Read the elevated thesis from the critique output in scratchpad.md (look for the if_elevate block). Adopt the elevated thesis as your new working thesis, update state.json, and begin a fresh expansion pass from the new frame.`
+        `The critique determined the thesis needs elevation — a fundamental reframe. Re-enter formation per skills/dialectic/FORMATION.md: re-score the candidate field (including rejected candidates) with the accumulated evidence, enter the elevated thesis from the if_elevate block in scratchpad.md as a new candidate, select the winner, update the case object and thesis in state.json, and begin a fresh expansion pass from the winning case. If no case object exists (pre-formation run), adopt the elevated thesis directly.`
       );
     }
   }

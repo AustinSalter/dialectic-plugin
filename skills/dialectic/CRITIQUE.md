@@ -57,6 +57,19 @@ Cannot decide without answering:
 
 *If you can't complete this, you haven't understood the thesis. Return to expansion.*
 
+## Case Ground (when state.json carries a `case` object)
+
+Formation declared the case's ground; the critique enforces it. Classify every counter before running the amputation check:
+
+| Counter hits | Classification | Response |
+|---|---|---|
+| A `hard_core` claim | Core hit | If the counter stands after a genuine kill attempt, the decision is REJECT — a patched core is degeneration, not adaptation |
+| A `protective_belt` claim | Belt hit | The belt may be sacrificed: revise or drop the auxiliary claim; record the sacrifice in the amputation check, progressive only if the core's content grows |
+| An `excludes` item | Off-ground | Record it in the scratchpad and decline it — the case never claimed this ground. Absorbing off-ground counters is how theses swell toward the mean |
+| A `definitions` term | Definition press | Answer from the operational definition fixed at formation; if the definition itself cannot hold, treat as a core hit |
+
+ELEVATE with a `case` present re-enters `FORMATION.md`: re-score the candidate field with the accumulated evidence rather than freeform-rewriting the incumbent. The elevated thesis this critique reaches is a new candidate, not an automatic winner.
+
 ## Elevation Test (Run Before Decision)
 
 Before deciding, check for **amputation** — the failure mode where counter-arguments are acknowledged but don't change anything.
