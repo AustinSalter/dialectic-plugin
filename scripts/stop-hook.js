@@ -10,18 +10,24 @@
 const fs = require("fs");
 const path = require("path");
 
-// Hooks inherit the session shell's cwd, which may have wandered anywhere.
-// CLAUDE_PROJECT_DIR is the harness-provided project root — anchor there.
-if (process.env.CLAUDE_PROJECT_DIR && fs.existsSync(process.env.CLAUDE_PROJECT_DIR)) {
-  try { process.chdir(process.env.CLAUDE_PROJECT_DIR); } catch (_) {}
+const { resolveStateRoot, readHookInput } = require("./resolve-root");
+
+// Find the state from where Claude is working (hook input `cwd` follows Claude
+// into worktrees and subdirectories), falling back to CLAUDE_PROJECT_DIR (where
+// the session started). See resolve-root.js.
+const hookInput = readHookInput();
+const ROOT = resolveStateRoot({ cwds: [hookInput.cwd, process.cwd()] });
+if (!ROOT) {
+  process.exit(0); // No active loop where Claude is working — allow exit
 }
+try { process.chdir(ROOT); } catch (_) { process.exit(0); }
 
 // On macOS/Linux, delegate to the bash hook
 if (process.platform !== "win32" && process.env.DIALECTIC_HOOK_IMPL !== "node") {
   const { execFileSync } = require("child_process");
   const bashHook = path.join(__dirname, "stop-hook.sh");
   try {
-    execFileSync("bash", [bashHook], { stdio: "inherit" });
+    execFileSync("bash", [bashHook], { stdio: "inherit", cwd: ROOT, env: { ...process.env, DIALECTIC_ROOT: ROOT } });
     process.exit(0);
   } catch (e) {
     process.exit(e.status || 1);
@@ -442,17 +448,40 @@ if (loop === "reasoning") {
   state.iteration = newIteration;
   writeState(state);
 
+  // Orientation for the next iteration: the model only sees stderr on exit 2,
+  // so the thesis, confidence and the previous iteration's open question go
+  // there — not just a pointer to state.json.
+  const fullThesis = ((state.thesis && state.thesis.current) || "").substring(0, 400);
+  let nextPriority = "";
+  try {
+    const hist = fs.readFileSync(path.join(STATE_DIR, "thesis-history.md"), "utf8");
+    const m = hist.match(/^\*\*Next Priority\*\*:\s*(.*)$/gm);
+    if (m) nextPriority = m[m.length - 1].replace(/^\*\*Next Priority\*\*:\s*/, "").trim();
+  } catch (_) {}
+  let orientation = `Dialectic iteration ${newIteration} of ${maxIterations} (floor ${minIterations}). Thesis: ${fullThesis}. Confidence R=${R} E=${E} C=${C}.`;
+  if (nextPriority) orientation += ` Open question from iteration ${iteration}: ${nextPriority}`;
+  orientation += " Begin with the expansion pass (read skills/dialectic/EXPANSION.md first), then compression, then critique. State is in .claude/dialectic/state.json.";
+
   log("");
   log("================================================");
   log(`  Dialectic iteration ${newIteration} / ${maxIterations} (floor: ${minIterations})`);
   log(`  Confidence — R: ${R} | E: ${E} | C: ${C}`);
   log(`  Thesis: ${thesis}...`);
   log(`  Decision: ${decision} -> continuing`);
+  if (nextPriority) log(`  Next: ${nextPriority}`);
   log("================================================");
 
-  blockStop(
-    `Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration ${newIteration}.`
-  );
+  // Manual pace: hand control back to the user between iterations instead of
+  // re-feeding. The iteration is already advanced; /dialectic:dialectic resumes.
+  if ((state.pace || "auto") === "manual") {
+    state.resume_note = orientation;
+    writeState(state);
+    log(`  Paused (pace: manual). Run /dialectic:dialectic to start iteration ${newIteration}.`);
+    log("================================================");
+    process.exit(0);
+  }
+
+  blockStop(orientation);
 
 // ============================================================
 // DISTILLATION LOOP

@@ -48,14 +48,20 @@ export function writeArtifact(sandbox, name, content) {
   writeFileSync(join(sandbox.stateDir, name), content);
 }
 
-export function runHook(sandbox, impl) {
+// opts.cwd: the hook process's cwd. opts.projectDir: CLAUDE_PROJECT_DIR (null to unset).
+// opts.input: hook input JSON (object) written to stdin, as the harness does.
+export function runHook(sandbox, impl, { cwd = sandbox.dir, projectDir = sandbox.dir, input } = {}) {
   const cmd = impl === "sh"
     ? { file: "bash", args: [join(REPO, "scripts", "stop-hook.sh")] }
     : { file: "node", args: [join(REPO, "scripts", "stop-hook.js")] };
+  const env = { ...process.env, CLAUDE_PROJECT_DIR: projectDir, DIALECTIC_HOOK_IMPL: impl === "js" ? "node" : "" };
+  delete env.DIALECTIC_ROOT;
+  if (projectDir === null) delete env.CLAUDE_PROJECT_DIR;
   return spawnSync(cmd.file, cmd.args, {
-    cwd: sandbox.dir,
+    cwd,
     encoding: "utf8",
-    env: { ...process.env, CLAUDE_PROJECT_DIR: sandbox.dir, DIALECTIC_HOOK_IMPL: impl === "js" ? "node" : "" },
+    input: input === undefined ? undefined : JSON.stringify(input),
+    env,
   });
 }
 

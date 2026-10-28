@@ -224,6 +224,7 @@ dialectic-plugin/
 │   ├── stop-hook.sh        # Loop controller (macOS/Linux)
 │   ├── stop-hook.js        # Loop controller (cross-platform)
 │   ├── serialize-trace.js  # Trace serialization for holdout
+│   ├── resolve-root.js     # Finds .claude/dialectic/ where Claude is working (worktree-safe)
 │   └── export-session.py   # Session JSONL → markdown export
 ├── tests/                  # node --test suite (both hook impls, serializer golden tests)
 └── README.md
