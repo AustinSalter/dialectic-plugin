@@ -19,7 +19,9 @@ Iterative reasoning architecture that separates divergent exploration from conve
       │              │                         │                         │
       │              ▼                         ▼                         ▼
       └────── [CONTINUE]                 [CONCLUDE]                 [ELEVATE]
-              loop back                        │                  revise thesis
+              loop back                        │                  re-enter formation
+                                               │
+                     [REJECT] re-loop once on a counter-thesis, or end as refutation
                                                │
                                         ┌──────┴──────┐
                                         │  HOLDOUT    │ (if --holdout)
@@ -55,8 +57,8 @@ Iterative reasoning architecture that separates divergent exploration from conve
 |------|-------------|--------|
 | **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, etc. |
 | **Compression** | After expansion, to synthesize findings | Structured state (insights, tensions, threads, confidence) |
-| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/PIVOT) with reasoning |
-| **Synthesis** | When concluding, to produce final output | Final thesis with confidence and key evidence |
+| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE/REJECT) with reasoning |
+| **Synthesis** | After the loop concludes, via `/dialectic:dialectic-distill` | Final thesis with confidence and key evidence |
 | **Escape Hatch** | Max iterations reached with low confidence | Honest assessment of blockers and limitations |
 
 ## Working Memory Format
@@ -67,7 +69,7 @@ Passes receive working memory as context. Standard format:
 ## Working Memory (After Cycle N)
 
 ### Validated Insights
-1. [claim] — Confidence: 0.XX
+1. [claim]
 
 ### Unresolved Tensions
 - [description of conflicting evidence]
@@ -75,7 +77,7 @@ Passes receive working memory as context. Standard format:
 ### Threads to Explore
 - [topic]: [why it matters]
 
-### Overall Confidence: 0.XX
+### Confidence: R=0.XX E=0.XX C=0.XX (lowest: 0.XX)
 ```
 
 ## Pass Instructions
@@ -109,9 +111,9 @@ All passes use consistent semantic markers. See [MARKERS.md](MARKERS.md) for def
 
 Single scalar confidence conflates reasoning quality, evidence quality, and conclusion certainty. Use three independent dimensions:
 
-- **R (Reasoning)**: Is the logic sound? (0.0-1.0)
-- **E (Evidence)**: Is evidence complete? (0.0-1.0)
-- **C (Conclusion)**: How certain given R and E? (0.0-1.0)
+- **R (Defensibility)**: Can the thesis survive scrutiny? (0.0-1.0)
+- **E (Evidence saturation)**: Would more evidence change the picture? (0.0-1.0)
+- **C (Domain determinacy)**: How far can any claim in this domain be settled? (0.0-1.0)
 
 Verdict language keys off the lowest of R, E, C — a chain is as strong as its weakest dimension; never average the three.
 
@@ -119,11 +121,12 @@ See [COMPRESSION.md](COMPRESSION.md) and [CRITIQUE.md](CRITIQUE.md) for details.
 
 ## Termination Conditions
 
-Analysis terminates when any of:
-1. **Conclusion**: Critique decides thesis is robust (CONCLUDE)
-2. **Saturation**: Confidence delta < 0.05 for 2 consecutive cycles
-3. **High confidence**: Score ≥ 0.75 with < 2 unresolved questions
-4. **Max cycles**: Hard limit reached (triggers escape hatch if confidence < 0.5)
+The stop hook owns every transition. The reasoning loop terminates when any of:
+1. **Conclusion**: Critique decides the thesis is robust (CONCLUDE) and `iteration ≥ min_iterations`. Below the floor, the hook overrides CONCLUDE to CONTINUE.
+2. **Refutation**: Critique decides the thesis is refuted (REJECT). The hook re-loops once on a counter-thesis if one was offered; otherwise the run ends as a refutation.
+3. **Max cycles**: `iteration ≥ max_iterations`. The hook flags low E or low C (< 0.5) at exit. If the lowest of R, E, C is < 0.5, the [escape hatch](ESCAPE-HATCH.md) applies.
+
+No scalar threshold ends the loop. Verdict strength at termination reads off the lowest of R, E, C — see the bands in [SYNTHESIS.md](SYNTHESIS.md).
 
 ## Quick Start
 
@@ -131,7 +134,8 @@ For a new strategic question:
 
 1. Run **Expansion** pass with the question and empty working memory
 2. Run **Compression** pass on the expansion output
-3. Run **Critique** pass to decide: CONTINUE, CONCLUDE, or PIVOT
-4. If CONTINUE: loop back to step 1 with updated working memory
-5. If CONCLUDE: run **Synthesis** pass
-6. If PIVOT: revise thesis and loop back to step 1
+3. Run **Critique** pass to decide: CONTINUE, CONCLUDE, ELEVATE, or REJECT
+4. If CONTINUE: the hook advances the iteration and loops back to step 1 (with `--pace=manual`, it pauses; run `/dialectic:dialectic` to resume)
+5. If CONCLUDE: the hook exits the loop. Run `/dialectic:dialectic-distill` for the conviction memo or `/dialectic:forge` for the build spec — synthesis does not run inside the loop
+6. If ELEVATE: the hook re-enters formation with the elevated thesis and loops back to step 1
+7. If REJECT: the hook re-loops once on a counter-thesis, or ends the run; run `/dialectic:dialectic-distill` for the refutation memo
