@@ -10,9 +10,13 @@
 const fs = require("fs");
 const path = require("path");
 
-// Invoked from a shell whose cwd may have wandered; anchor to the project root.
-if (process.env.CLAUDE_PROJECT_DIR && fs.existsSync(process.env.CLAUDE_PROJECT_DIR)) {
-  try { process.chdir(process.env.CLAUDE_PROJECT_DIR); } catch (_) {}
+// Claude runs this from its shell, so process.cwd() is where Claude is working
+// (a worktree, or a subdirectory after `cd`). CLAUDE_PROJECT_DIR is only the
+// fallback — it stays where the session started. See resolve-root.js.
+const { resolveStateRoot } = require("./resolve-root");
+const ROOT = resolveStateRoot({ cwds: [process.cwd()] });
+if (ROOT) {
+  try { process.chdir(ROOT); } catch (_) {}
 }
 
 const STATE_DIR = ".claude/dialectic";

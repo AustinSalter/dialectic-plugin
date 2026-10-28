@@ -8,11 +8,38 @@
 # The primary hook is stop-hook.js (cross-platform, no jq dependency).
 # This script is kept as a bash-native alternative.
 
-# Hooks inherit the session shell's cwd, which may have wandered anywhere.
-# CLAUDE_PROJECT_DIR is the harness-provided project root — anchor there.
-if [ -n "$CLAUDE_PROJECT_DIR" ] && [ -d "$CLAUDE_PROJECT_DIR" ]; then
-  cd "$CLAUDE_PROJECT_DIR" || exit 0
+# Find the directory holding .claude/dialectic/state.json.
+# stop-hook.js resolves it and passes DIALECTIC_ROOT. Run standalone, this
+# mirrors scripts/resolve-root.js: walk up from where Claude is working (hook
+# input `cwd`, else this shell's cwd) to the repo boundary (.git), then fall
+# back to CLAUDE_PROJECT_DIR — where the session started, which does NOT
+# follow Claude into a worktree.
+resolve_root() {
+  local dir="$1"
+  { [ -n "$dir" ] && [ -d "$dir" ]; } || return 1
+  dir=$(cd "$dir" 2>/dev/null && pwd) || return 1
+  while :; do
+    [ "$dir" = "$HOME" ] && return 1
+    if [ -f "$dir/.claude/dialectic/state.json" ]; then echo "$dir"; return 0; fi
+    [ -e "$dir/.git" ] && return 1
+    [ "$dir" = "/" ] && return 1
+    dir=$(dirname "$dir")
+  done
+}
+
+ROOT="${DIALECTIC_ROOT:-}"
+if [ -z "$ROOT" ]; then
+  HOOK_CWD=""
+  if [ ! -t 0 ]; then
+    HOOK_CWD=$(jq -r '.cwd // empty' 2>/dev/null)
+  fi
+  ROOT=$(resolve_root "$HOOK_CWD") || ROOT=$(resolve_root "$PWD") || ROOT=""
+  if [ -z "$ROOT" ] && [ -n "$CLAUDE_PROJECT_DIR" ] && [ -f "$CLAUDE_PROJECT_DIR/.claude/dialectic/state.json" ]; then
+    ROOT="$CLAUDE_PROJECT_DIR"
+  fi
 fi
+[ -n "$ROOT" ] || exit 0  # No active loop where Claude is working
+cd "$ROOT" || exit 0
 
 STATE_DIR=".claude/dialectic"
 STATE_FILE="$STATE_DIR/state.json"
@@ -441,14 +468,40 @@ if [ "$LOOP" = "reasoning" ]; then
   jq ".iteration = $NEW_ITERATION" "$STATE_FILE" > "$STATE_FILE.tmp"
   mv "$STATE_FILE.tmp" "$STATE_FILE"
 
+  # Orientation for the next iteration: the model only sees stderr on exit 2,
+  # so the thesis, confidence and the previous iteration's open question go
+  # there — not just a pointer to state.json.
+  FULL_THESIS=$(jq -r '.thesis.current // ""' "$STATE_FILE" 2>/dev/null | head -c 400)
+  NEXT_PRIORITY=$(grep '^\*\*Next Priority\*\*:' "$STATE_DIR/thesis-history.md" 2>/dev/null | tail -1 | sed 's/^\*\*Next Priority\*\*: *//')
+  ORIENTATION="Dialectic iteration $NEW_ITERATION of $MAX_ITERATIONS (floor $MIN_ITERATIONS). Thesis: $FULL_THESIS. Confidence R=$R E=$E C=$C."
+  if [ -n "$NEXT_PRIORITY" ]; then
+    ORIENTATION="$ORIENTATION Open question from iteration $ITERATION: $NEXT_PRIORITY"
+  fi
+  ORIENTATION="$ORIENTATION Begin with the expansion pass (read skills/dialectic/EXPANSION.md first), then compression, then critique. State is in .claude/dialectic/state.json."
+
   echo ""
   echo "================================================"
   echo "  Dialectic iteration $NEW_ITERATION / $MAX_ITERATIONS (floor: $MIN_ITERATIONS)"
   echo "  Confidence — R: $R | E: $E | C: $C"
   echo "  Thesis: ${THESIS}..."
   echo "  Decision: $DECISION -> continuing"
+  if [ -n "$NEXT_PRIORITY" ]; then
+    echo "  Next: $NEXT_PRIORITY"
+  fi
   echo "================================================"
-  echo "Continue the dialectic reasoning cycle. Read state from .claude/dialectic/state.json and proceed with iteration $NEW_ITERATION." >&2
+
+  # Manual pace: hand control back to the user between iterations instead of
+  # re-feeding. The iteration is already advanced; /dialectic:dialectic resumes.
+  PACE=$(jq -r '.pace // "auto"' "$STATE_FILE" 2>/dev/null)
+  if [ "$PACE" = "manual" ]; then
+    jq --arg note "$ORIENTATION" '.resume_note = $note' "$STATE_FILE" > "$STATE_FILE.tmp"
+    mv "$STATE_FILE.tmp" "$STATE_FILE"
+    echo "  Paused (pace: manual). Run /dialectic:dialectic to start iteration $NEW_ITERATION."
+    echo "================================================"
+    exit 0
+  fi
+
+  echo "$ORIENTATION" >&2
 
   exit 2  # Block stop, continue loop
 
