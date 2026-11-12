@@ -28,7 +28,7 @@ git clone https://github.com/AustinSalter/dialectic-plugin.git
 
 - **Iterative dialectic reasoning** — Expansion, compression, and critique passes that argue against themselves before concluding
 - **A thesis can die** — REJECT is a first-class outcome: one re-loop on a counter-thesis if the evidence supports a rival, or a refutation memo. Killed claims stay visibly dead in the spine
-- **Warrant gate** — The stop hook refuses any decision whose probe reasoning isn't externalized to the scratchpad. Verdicts without visible warrants don't advance the loop
+- **Warrant gate** — The stop hook refuses any decision whose probe warrants aren't written to the scratchpad. Verdicts without visible warrants don't advance the loop
 - **3D confidence tracking** — Robustness, evidence saturation, and domain determinacy replace single-scalar guesswork. Verdict language is bound by the lowest dimension — never an average
 - **Frame selection** — Calibrates altitude before searching. "Better docs" becomes "developer adoption → switching costs → infrastructure moat"
 - **Two-loop architecture** — Reasoning explores (messy, exhaustive). Distillation compresses (every sentence earns its place). A stop hook enforces the boundary.
@@ -167,7 +167,11 @@ The loops are structurally independent. The reasoning loop explores — messy, e
 
 ### Termination
 
-Reasoning ends when critique CONCLUDEs and the iteration floor is met, when it REJECTs with no viable counter-thesis (the run ends as a refutation), when confidence saturates (delta < 0.05 for two cycles), or at max iterations. The stop hook enforces all of it — including the warrant gate: a decision with no externalized probe reasoning is bounced back, not honored. If `--holdout` is enabled, holdout runs automatically before transitioning to the synthesis-ready state. Distillation ends when all five probes pass and the compression gate is satisfied. Forge ends when all seven quality checks pass.
+Reasoning ends when critique CONCLUDEs and the iteration floor is met, when it REJECTs with no viable counter-thesis (the run ends as a refutation), when confidence saturates (delta < 0.05 for two cycles), or at max iterations. The stop hook enforces all of it — including the warrant gate: a decision whose probe warrants aren't in the scratchpad is bounced back, not honored. If `--holdout` is enabled, holdout runs automatically before transitioning to the synthesis-ready state. Distillation ends when all five probes pass and the compression gate is satisfied. Forge ends when all seven quality checks pass.
+
+### Passes are work product, not a reasoning transcript
+
+On Claude Opus 5.5, Sonnet 5.5, and the other models with refusal classifiers, a prompt that asks the model to reproduce its internal reasoning in the response (a reasoning trace, a scratchpad filled before answering, reasoning "in full") can be declined with `stop_details.category: "reasoning_extraction"`. The model's own deliberation happens in adaptive thinking, which is on by default on these models and can't be switched off. So the command and skill files ask each pass for what it argued, not how the model got there: claims, evidence, probe verdicts with warrants, decisions. Keep that framing when you edit them. To watch the model's thinking during a run, Claude Code's `"showThinkingSummaries": true` setting requests thinking summaries (never raw thinking), though whether they arrive varies by Claude Code version and sign-in type. See [Refusals and fallback](https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback#keep-reasoning-in-thinking-blocks).
 
 ### 3D Confidence
 

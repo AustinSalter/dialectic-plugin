@@ -10,7 +10,7 @@ Compress reasoning into a memo where every sentence earns its place.
 ## Input Required
 
 Needs completed reasoning loop with:
-- Scratchpad (`.claude/dialectic/scratchpad.md`) — full reasoning with markers
+- Scratchpad (`.claude/dialectic/scratchpad.md`) — every pass as written, with markers
 - State (`.claude/dialectic/state.json`) — final thesis, confidence, evidence
 - Thesis history (`.claude/dialectic/thesis-history.md`) — iteration trajectory
 

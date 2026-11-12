@@ -55,9 +55,9 @@ Iterative reasoning architecture that separates divergent exploration from conve
 
 | Pass | When to Use | Output |
 |------|-------------|--------|
-| **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, etc. |
+| **Expansion** | Starting analysis or exploring new threads | Marked analysis with `[INSIGHT]`, `[EVIDENCE]`, etc. |
 | **Compression** | After expansion, to synthesize findings | Structured state (insights, tensions, threads, confidence) |
-| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE/REJECT) with reasoning |
+| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE/REJECT) with its grounds |
 | **Synthesis** | After the loop concludes, via `/dialectic:dialectic-distill` | Final thesis with confidence and key evidence |
 | **Escape Hatch** | Max iterations reached with low confidence | Honest assessment of blockers and limitations |
 

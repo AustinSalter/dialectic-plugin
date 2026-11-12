@@ -15,7 +15,7 @@ Read `.claude/dialectic/state.json`. Check:
 - If `loop` is already `"forge"`, a forge synthesis is in progress. Resume it.
 
 Required artifacts (all must exist in `.claude/dialectic/`):
-- `scratchpad.md` — full reasoning with markers
+- `scratchpad.md` — every pass as written, with markers
 - `state.json` — final thesis, confidence, evidence
 - `thesis-history.md` — iteration trajectory
 

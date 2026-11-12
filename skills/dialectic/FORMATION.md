@@ -59,7 +59,7 @@ Prefer the boldest case that survives the table, not the safest. A safe case is 
 
 ## Phase 3: Commit and Declare Ground
 
-Write the selected case to state.json under `case`, and append the full formation block — candidates, scores, selection reasoning — to the scratchpad:
+Write the selected case to state.json under `case`, and append the full formation block — candidates, scores, and the grounds for the selection — to the scratchpad:
 
 ```yaml
 case:
