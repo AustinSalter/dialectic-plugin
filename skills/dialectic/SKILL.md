@@ -55,9 +55,9 @@ Iterative reasoning architecture that separates divergent exploration from conve
 
 | Pass | When to Use | Output |
 |------|-------------|--------|
-| **Expansion** | Starting analysis or exploring new threads | Marked reasoning with `[INSIGHT]`, `[EVIDENCE]`, etc. |
+| **Expansion** | Starting analysis or exploring new threads | Marked analysis with `[INSIGHT]`, `[EVIDENCE]`, etc. |
 | **Compression** | After expansion, to synthesize findings | Structured state (insights, tensions, threads, confidence) |
-| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE/REJECT) with reasoning |
+| **Critique** | After compression, to decide next action | Decision (CONTINUE/CONCLUDE/ELEVATE/REJECT) with its grounds |
 | **Synthesis** | After the loop concludes, via `/dialectic:dialectic-distill` | Final thesis with confidence and key evidence |
 | **Escape Hatch** | Max iterations reached with low confidence | Honest assessment of blockers and limitations |
 
@@ -102,6 +102,10 @@ Validated conviction: /dialectic --holdout "thesis" → /dialectic-distill
 Validated build:      /dialectic --holdout "thesis" → /forge
 Full package:         /dialectic --holdout "thesis" → /forge + /dialectic-distill
 ```
+
+## The Flow
+
+Every pass is appended to `.claude/dialectic/flow.md`, the run's flow. As in a debate flow, it records the arguments made (claims, evidence, counters, probe verdicts, decisions), not the thinking behind them. The stop hook's warrant gate, the holdout serializer, distillation, and forge all read it.
 
 ## Semantic Markers
 

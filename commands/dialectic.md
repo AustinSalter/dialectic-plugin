@@ -66,7 +66,7 @@ Create `.claude/dialectic/state.json` with a single Write tool call — not a he
     "report_path": null
   },
   "output_dir": "<parsed or default .dialectic-output/>",
-  "keep_artifacts": ["memo", "spine", "history", "scratchpad", "state", "prompt"]
+  "keep_artifacts": ["memo", "spine", "history", "flow", "state", "prompt"]
 }
 ```
 
@@ -78,38 +78,40 @@ Also write the original prompt to `.claude/dialectic/prompt.md` for reference.
 
 ## Output Format
 
-Show your work. The user should see:
-- Full expansion reasoning with markers
-- Compression synthesis and confidence update
-- Critique questioning and decision
+Each pass is a written work product: a section of the case the run is building, not a record of how you arrived at it. Keep your deliberation in thinking. The pass states what it found and on what grounds: claims with their markers, evidence with its sources, probe verdicts with their warrants, and the decision.
 
-Output the full reasoning trace. Do not summarize or collapse intermediate steps.
+The user reads each pass as it is written:
+- Expansion: the argued threads, with markers
+- Compression: the synthesis and confidence update
+- Critique: the probe verdicts, preservation gate, and decision
+
+Write every element a pass's protocol file asks for. The markers, probe verdicts, warrants, and decision blocks are the run's deliverables, and the stop hook checks for them. A pass collapsed into a one-line verdict has not been written.
 
 Each pass step below begins with one Read tool call on its own protocol file. Never read them with a concatenating shell command, and never read them all up front.
 
 ## Step 2: EXPANSION Pass (Thesis)
 
-Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/scratchpad.md`. Expansion is discursive: follow threads, show the reasoning.
+Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/flow.md`. Expansion is discursive: follow threads and argue each one from its evidence.
 
 Read `skills/dialectic/EXPANSION.md` now, immediately before running the pass.
 
 Run the expansion protocol in `skills/dialectic/EXPANSION.md`, including its frame-selection step.
 
-Append the complete expansion output — tagged evidence, frame labels, and reasoning — to `.claude/dialectic/scratchpad.md`.
+Append the complete expansion output — tagged evidence, frame labels, and the argument that connects them — to `.claude/dialectic/flow.md`.
 
 ## Step 2.5: FORMATION Pass (iteration 1 only)
 
-Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/scratchpad.md`.
+Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/flow.md`.
 
-On the first iteration only, after the expansion output is in the scratchpad, read `skills/dialectic/FORMATION.md`, then run its formation protocol: promote the frame's rival hypotheses to candidate cases, score them for winnability, commit to one, and write the `case` object to state.json. The selected case's claim becomes `thesis.current`.
+On the first iteration only, after the expansion output is in the flow, read `skills/dialectic/FORMATION.md`, then run its formation protocol: promote the frame's rival hypotheses to candidate cases, score them for winnability, commit to one, and write the `case` object to state.json. The selected case's claim becomes `thesis.current`.
 
-Append the full formation block — candidates, scores, selection reasoning — to `.claude/dialectic/scratchpad.md`.
+Append the full formation block — candidates, scores, and the grounds for the selection — to `.claude/dialectic/flow.md`.
 
 On iterations 2+, skip this step. Formation re-entry happens only through ELEVATE — the hook's elevation prompt routes back through FORMATION.md.
 
 ## Step 3: COMPRESSION Pass (Antithesis)
 
-Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/scratchpad.md`. Compression is terse and decisive: claims, confidence, no re-argument.
+Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/flow.md`. Compression is terse and decisive: claims, confidence, no re-argument.
 
 Read `skills/dialectic/COMPRESSION.md` now, immediately before running the pass.
 
@@ -119,7 +121,7 @@ Before writing new confidence values to state.json, append the current `thesis.c
 
 ## Step 4: CRITIQUE Pass (Sublation)
 
-Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/scratchpad.md`. Critique is terse and decisive: probe, verdict, decision.
+Write this pass in your response first, as prose, then append the same text to `.claude/dialectic/flow.md`. Critique is terse and decisive: probe, verdict, decision.
 
 Read `skills/dialectic/CRITIQUE.md` now, immediately before running the pass.
 
@@ -127,7 +129,7 @@ Run the critique protocol in `skills/dialectic/CRITIQUE.md` without abbreviation
 
 Write decision to state.json `decision` field (lowercase: "continue", "conclude", "elevate", or "reject").
 
-Append the complete critique output — the probes yaml, preservation gate, and decision block — to `.claude/dialectic/scratchpad.md` before stopping. The stop hook will not honor a decision whose warrant is not in the scratchpad.
+Append the complete critique output — the probes yaml, preservation gate, and decision block — to `.claude/dialectic/flow.md` before stopping. The stop hook will not honor a decision whose warrant is not in the flow.
 
 ## Step 5: Update Thesis History
 

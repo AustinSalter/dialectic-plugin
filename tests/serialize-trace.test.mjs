@@ -7,15 +7,15 @@ import { spawnSync } from "node:child_process";
 import { makeSandbox } from "./helpers.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
-const FIXTURE = readFileSync(join(REPO, "tests", "fixtures", "scratchpad-da776260.md"), "utf8");
+const FIXTURE = readFileSync(join(REPO, "tests", "fixtures", "flow-da776260.md"), "utf8");
 
-function serialize(scratchpad, confidence = { R: 0.7, E: 0.8, C: 0.5 }) {
+function serialize(flow, confidence = { R: 0.7, E: 0.8, C: 0.5 }, file = "flow.md") {
   const sb = makeSandbox();
   writeFileSync(join(sb.stateDir, "state.json"), JSON.stringify({
     iteration: 4, max_iterations: 5,
     thesis: { current: "t", confidence },
   }));
-  writeFileSync(join(sb.stateDir, "scratchpad.md"), scratchpad);
+  writeFileSync(join(sb.stateDir, file), flow);
   writeFileSync(join(sb.stateDir, "thesis-history.md"), "## Iteration 1\n**Thesis**: t\n**Confidence**: R=0.70 E=0.80 C=0.50\n**Decision**: CONCLUDE\n");
   const r = spawnSync("node", [join(REPO, "scripts", "serialize-trace.js")], { cwd: sb.dir, encoding: "utf8" });
   assert.equal(r.status, 0, r.stderr);
@@ -23,9 +23,9 @@ function serialize(scratchpad, confidence = { R: 0.7, E: 0.8, C: 0.5 }) {
   return { thesis: read("conviction_thesis.md"), summary: read("trace_summary.md") };
 }
 
-test("golden: da776260 scratchpad — dialect markers all extracted", () => {
+test("golden: da776260 flow — dialect markers all extracted", () => {
   const { summary } = serialize(FIXTURE);
-  // Forensic ground truth, hand-counted against tests/fixtures/scratchpad-da776260.md
+  // Forensic ground truth, hand-counted against tests/fixtures/flow-da776260.md
   // (grep -n for lines containing "EVIDENCE", "BRIDGE", "^[TENSION"):
   //   EVIDENCE: 11 markers anchored at column 0 (lines 46,49,53,57,60,113,124,132,136,173,218)
   //     + 2 markers indented two spaces as sub-bullets under a paragraph (lines 106,107)
@@ -99,4 +99,10 @@ test("mid-line stitch on a continuation line does not truncate the enclosing mar
     section,
     /First line of evidence\. Deepest support yet\. \[BRIDGE: a→b\] the bridge text Third continuation line here\./
   );
+});
+
+test("legacy scratchpad.md from a pre-rename run is still serialized", () => {
+  const { summary } = serialize(FIXTURE, undefined, "scratchpad.md");
+  const section = (name) => (summary.split(`### [${name}] markers`)[1] || "").split("###")[0];
+  assert.equal((section("EVIDENCE").match(/^- E\d+:/gm) || []).length, 13, "EVIDENCE inventory");
 });

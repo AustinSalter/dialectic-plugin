@@ -4,7 +4,8 @@
 // Reads loop artifacts, produces three holdout input files in
 // .claude/dialectic/holdout_input/
 //
-// Inputs: state.json, scratchpad.md, thesis-history.md, prompt.md
+// Inputs: state.json, flow.md (and scratchpad.md from runs started before the rename),
+//         thesis-history.md, prompt.md
 // Outputs: conviction_thesis.md, trace_summary.md, holdout_brief.md
 
 const fs = require("fs");
@@ -138,12 +139,12 @@ function parseIterations(historyText) {
   return iterations;
 }
 
-function findBuriedMarkers(scratchpadMarkers, finalIterationText) {
-  // Markers present in scratchpad but absent from the final iteration
+function findBuriedMarkers(flowMarkers, finalIterationText) {
+  // Markers present in the flow but absent from the final iteration
   const buried = [];
   const finalLower = (finalIterationText || "").toLowerCase();
 
-  for (const [type, items] of Object.entries(scratchpadMarkers)) {
+  for (const [type, items] of Object.entries(flowMarkers)) {
     for (const item of items) {
       // Check if key phrases from this marker appear in the final iteration
       const keywords = item
@@ -180,18 +181,22 @@ try {
 }
 
 // Read artifacts
-const scratchpad = readFileOr(path.join(STATE_DIR, "scratchpad.md"), "");
+// Runs started before the scratchpad -> flow rename may hold scratchpad.md; read both, oldest first.
+const flow = [
+  readFileOr(path.join(STATE_DIR, "scratchpad.md"), ""),
+  readFileOr(path.join(STATE_DIR, "flow.md"), ""),
+].filter(Boolean).join("\n");
 const history = readFileOr(path.join(STATE_DIR, "thesis-history.md"), "");
 const prompt = readFileOr(path.join(STATE_DIR, "prompt.md"), "");
 
-if (!scratchpad && !history) {
-  console.error("No scratchpad.md or thesis-history.md found — nothing to serialize.");
+if (!flow && !history) {
+  console.error("No flow.md or thesis-history.md found — nothing to serialize.");
   process.exit(1);
 }
 
 // Extract data
-const scratchpadMarkers = extractMarkers(scratchpad);
-const stitches = extractStitches(scratchpad);
+const flowMarkers = extractMarkers(flow);
+const stitches = extractStitches(flow);
 const iterations = parseIterations(history);
 const conf = (state.thesis && state.thesis.confidence) || {};
 const R = typeof conf === "object" ? (conf.R != null ? conf.R : 0.5) : conf;
@@ -202,9 +207,9 @@ const lowest = Math.min(R, E, C).toFixed(2);
 // Determine final iteration text for buried-marker detection
 const finalIterBody = iterations.length > 0
   ? iterations[iterations.length - 1].body
-  : scratchpad.slice(-2000);
+  : flow.slice(-2000);
 
-const buried = findBuriedMarkers(scratchpadMarkers, finalIterBody);
+const buried = findBuriedMarkers(flowMarkers, finalIterBody);
 
 // Determine termination reason
 let terminationReason = "unknown";
@@ -225,18 +230,18 @@ if (state.iteration >= (state.max_iterations || 5)) {
 const currentThesis = (state.thesis && state.thesis.current) || prompt || "[no thesis extracted]";
 
 // Extract supporting arguments from EVIDENCE markers
-const supporting = scratchpadMarkers.EVIDENCE.length > 0
-  ? scratchpadMarkers.EVIDENCE.map((e, i) => `${i + 1}. ${e}`).join("\n")
+const supporting = flowMarkers.EVIDENCE.length > 0
+  ? flowMarkers.EVIDENCE.map((e, i) => `${i + 1}. ${e}`).join("\n")
   : "[No evidence markers found in trace]";
 
 // Extract stated counters
-const counters = scratchpadMarkers.COUNTER.length > 0
-  ? scratchpadMarkers.COUNTER.map((c, i) => `${i + 1}. ${c}`).join("\n")
+const counters = flowMarkers.COUNTER.length > 0
+  ? flowMarkers.COUNTER.map((c, i) => `${i + 1}. ${c}`).join("\n")
   : "[No counter markers found in trace]";
 
 // Extract insights as potential disconfirmation triggers
-const risks = scratchpadMarkers.RISK || [];
-const questions = scratchpadMarkers.QUESTION || [];
+const risks = flowMarkers.RISK || [];
+const questions = flowMarkers.QUESTION || [];
 const triggers = [...risks, ...questions];
 const triggerText = triggers.length > 0
   ? triggers.map((t, i) => `${i + 1}. ${t}`).join("\n")
@@ -297,17 +302,17 @@ function buildMarkerList(type, markers) {
 }
 
 // For COUNTER and TENSION markers, try to determine status
-function buildStatusMarkerList(type, markers, scratchpad) {
+function buildStatusMarkerList(type, markers, flow) {
   if (markers.length === 0) return `[No ${type} markers found]\n`;
   const prefix = type[0];
-  const scratchLower = scratchpad.toLowerCase();
+  const flowLower = flow.toLowerCase();
   return markers.map((m, i) => {
-    // Heuristic: if keywords from the marker appear later in scratchpad,
+    // Heuristic: if keywords from the marker appear later in the flow,
     // treat as addressed/resolved
     const keywords = m.toLowerCase().split(/\s+/).filter(w => w.length > 4).slice(0, 3);
     const found = keywords.filter(kw => {
-      const idx = scratchLower.indexOf(kw);
-      const markerIdx = scratchLower.indexOf(m.toLowerCase().slice(0, 30));
+      const idx = flowLower.indexOf(kw);
+      const markerIdx = flowLower.indexOf(m.toLowerCase().slice(0, 30));
       return idx > markerIdx + 50; // appears significantly after the marker
     });
     const status = found.length >= 2
@@ -332,19 +337,19 @@ ${trajectoryTable}
 ## Evidence Inventory
 
 ### [EVIDENCE] markers
-${buildMarkerList("EVIDENCE", scratchpadMarkers.EVIDENCE)}
+${buildMarkerList("EVIDENCE", flowMarkers.EVIDENCE)}
 ### [COUNTER] markers
-${buildStatusMarkerList("COUNTER", scratchpadMarkers.COUNTER, scratchpad)}
+${buildStatusMarkerList("COUNTER", flowMarkers.COUNTER, flow)}
 ### [TENSION] markers
-${buildStatusMarkerList("TENSION", scratchpadMarkers.TENSION, scratchpad)}
+${buildStatusMarkerList("TENSION", flowMarkers.TENSION, flow)}
 ### [INSIGHT] markers
-${buildMarkerList("INSIGHT", scratchpadMarkers.INSIGHT)}
+${buildMarkerList("INSIGHT", flowMarkers.INSIGHT)}
 ### [THREAD] markers
-${buildMarkerList("THREAD", scratchpadMarkers.THREAD || [])}
+${buildMarkerList("THREAD", flowMarkers.THREAD || [])}
 ### [RISK] markers
-${buildMarkerList("RISK", scratchpadMarkers.RISK || [])}
+${buildMarkerList("RISK", flowMarkers.RISK || [])}
 ### [QUESTION] markers
-${buildMarkerList("QUESTION", scratchpadMarkers.QUESTION || [])}
+${buildMarkerList("QUESTION", flowMarkers.QUESTION || [])}
 ### Stitch markers (joins across sources — weigh above single-source findings)
 ${stitches.length ? stitches.map((s) => `- ${s.type}: ${s.endpoints} — ${s.text}`).join("\n") : "[No stitch markers found]"}
 ## Markers Appearing in Expansion but Absent from Final Synthesis

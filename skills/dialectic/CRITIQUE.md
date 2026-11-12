@@ -65,7 +65,7 @@ Formation declared the case's ground; the critique enforces it. Classify every c
 |---|---|---|
 | A `hard_core` claim | Core hit | If the counter stands after a genuine kill attempt, the decision is REJECT — a patched core is degeneration, not adaptation |
 | A `protective_belt` claim | Belt hit | The belt may be sacrificed: revise or drop the auxiliary claim; record the sacrifice in the amputation check, progressive only if the core's content grows |
-| An `excludes` item | Off-ground | Record it in the scratchpad and decline it — the case never claimed this ground. Absorbing off-ground counters is how theses swell toward the mean |
+| An `excludes` item | Off-ground | Record it in the flow and decline it — the case never claimed this ground. Absorbing off-ground counters is how theses swell toward the mean |
 | A `definitions` term | Definition press | Answer from the operational definition fixed at formation; if the definition itself cannot hold, treat as a core hit |
 
 ELEVATE with a `case` present re-enters `FORMATION.md`: re-score the candidate field with the accumulated evidence rather than freeform-rewriting the incumbent. The elevated thesis this critique reaches is a new candidate, not an automatic winner.
@@ -80,7 +80,7 @@ When a counter did change the thesis, classify the change: **progressive** — t
 
 ```yaml
 amputation_check:
-  - counter: "[quoted from the scratchpad]"
+  - counter: "[quoted from the flow]"
     thesis_change: "[quoted new thesis text]"   # or: nothing changed
     shift: [progressive | degenerating]         # omit if nothing changed
     now_forbids: "[what the new thesis rules out]"   # progressive only

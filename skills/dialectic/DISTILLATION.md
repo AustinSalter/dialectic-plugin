@@ -1,6 +1,6 @@
 ---
 name: dialectic-distillation
-description: Compress completed reasoning into actionable conviction memo without structural loss. Extracts reasoning spine from scratchpad, drafts against SYNTHESIS.md spec, runs fidelity and clarity checks, revises until both pass.
+description: Compress completed reasoning into actionable conviction memo without structural loss. Extracts the reasoning spine from the flow, drafts against SYNTHESIS.md spec, runs fidelity and clarity checks, revises until both pass.
 ---
 
 # Distillation Pass
@@ -10,17 +10,17 @@ Compress reasoning into a memo where every sentence earns its place.
 ## Input Required
 
 Needs completed reasoning loop with:
-- Scratchpad (`.claude/dialectic/scratchpad.md`) — full reasoning with markers
+- Flow (`.claude/dialectic/flow.md`) — every pass as written, with markers. A run started before the scratchpad → flow rename may also hold `scratchpad.md`; read it first, as the start of the flow.
 - State (`.claude/dialectic/state.json`) — final thesis, confidence, evidence
 - Thesis history (`.claude/dialectic/thesis-history.md`) — iteration trajectory
 
-If no scratchpad exists, reasoning loop hasn't run. Stop.
+If neither file exists, the reasoning loop hasn't run. Stop.
 
 ## Spine Extraction (first distillation iteration only)
 
-**Mine, don't index.** The scratchpad is the ore body; the thesis string is one assay of it. `thesis.current` is a palimpsest — its clause order records the history of rewrites, not the ranking of claims. The elevation that reframed iteration 1 will still sit at the front of the sentence in iteration 5, whether or not it is still the point. Do not inherit its order.
+**Mine, don't index.** The flow is the ore body; the thesis string is one assay of it. `thesis.current` is a palimpsest — its clause order records the history of rewrites, not the ranking of claims. The elevation that reframed iteration 1 will still sit at the front of the sentence in iteration 5, whether or not it is still the point. Do not inherit its order.
 
-Re-read the full scratchpad and rank every surviving claim by decision value:
+Re-read the full flow and rank every surviving claim by decision value:
 
 - **Kills survived** — how many named kill attempts did this claim pass? Count the Survival probes that targeted it.
 - **Confidence moved** — did finding it shift R or E? Check the confidence notes.
@@ -29,7 +29,7 @@ Re-read the full scratchpad and rank every surviving claim by decision value:
 
 The spine's `thesis:` leads with the highest-ranking claim. In an adversarial loop the sharpest claims are usually the latest — they survived the most kills — while the earliest elevation is usually scaffolding by the end. Scaffolding goes in `evolution:`, not the thesis.
 
-Walk the scratchpad chronologically. Determine what survived:
+Walk the flow chronologically. Determine what survived:
 
 | Marker | Survived if... | Dies if... |
 |--------|---------------|------------|
@@ -64,7 +64,7 @@ If `thesis.status` is `"refuted"`, the memo's verdict is the refutation: state w
 
 ### Tailings (what the mine didn't take)
 
-Spine extraction is itself a compression, and nothing above audits what it drops. After writing the spine, sweep the scratchpad once more for:
+Spine extraction is itself a compression, and nothing above audits what it drops. After writing the spine, sweep the flow once more for:
 
 - `[THREAD]`s never explored and `not_yet_investigated` items never picked up
 - `[INSIGHT]`s and `[BRIDGE]`s that appear in no claim
@@ -81,14 +81,14 @@ Run all six against each draft:
 |-------|----------|--------------|
 | Trace | Every load-bearing claim in the memo? Every memo claim in the spine? | Dropped structure or unsupported assertion |
 | Tension | Does each counter-argument *strengthen* the thesis, not just get dismissed? | Amputation instead of elevation |
-| Sufficiency | Could the reader act on this without the scratchpad? | Missing decision-relevant information |
+| Sufficiency | Could the reader act on this without the flow? | Missing decision-relevant information |
 | Conviction-Ink | Does every sentence advance the argument, provide evidence, or acknowledge risk? | Hedging, throat-clearing, decoration |
 | Threads | ≤3 independent argument threads held simultaneously? | Cognitive overload — compression failed |
 | Position | Does the memo name a mispricing and a counterparty who would recognize themselves as being called wrong? | Mean-fallacy convergence — "all options are one thing" ranks nothing and offends no one |
 
 **Position probe detail:** A convergence-shaped lead ("X and Y are really the same phenomenon") is a mechanism, not a headline — demote it to the Leap's supporting logic unless the unification itself changes an allocation. The test is exclusion: the memo must tell the reader what NOT to do that reasonable people are currently doing, and name who is on the other side of the bet. If everyone the memo mentions could read it and feel confirmed, the probe fails.
 
-Each pass appends a `probe_results:` block to the scratchpad — one entry per probe, each quoting the memo sentence that decided its verdict. For whole-memo probes (Trace, Threads), quote the sentence that came closest to failing. A probe that names no sentence examined nothing.
+Each pass appends a `probe_results:` block to the flow — one entry per probe, each quoting the memo sentence that decided its verdict. For whole-memo probes (Trace, Threads), quote the sentence that came closest to failing. A probe that names no sentence examined nothing.
 
 ```yaml
 probe_results:
@@ -106,7 +106,7 @@ Cannot conclude without answering:
 1. **What was lost?** Name specific claims, evidence, or tensions from the spine that don't appear in the memo. For each: is the loss acceptable (not decision-relevant) or structural (breaks the argument)?
 2. **What was elevated?** Where does the memo show a counter-argument *making the thesis stronger* rather than just being noted as a risk?
 3. **What is the shortest version?** Could any sentence be removed without breaking the argument? If yes, remove it.
-4. **What jargon did the run coin?** List every term in the memo that appears in the spine or scratchpad but not in the original prompt or in common usage. Compression rewards coined shorthand; deliverables must pay it back out. Each coinage is either introduced by its plain-language mechanism before first use, or replaced with the mechanism itself.
+4. **What jargon did the run coin?** List every term in the memo that appears in the spine or flow but not in the original prompt or in common usage. Compression rewards coined shorthand; deliverables must pay it back out. Each coinage is either introduced by its plain-language mechanism before first use, or replaced with the mechanism itself.
 5. **Where are the seams?** Every causal connective in the memo — because, which is why, so, therefore — joins either two parts of one evidence atom or an evidence atom to a `causal_chain` inference. List the connectives of the second kind. Each must wear its status in the sentence: "the bet is", "the reading here is", or an equivalent marker that tells the reader this link is the argument, not the source. A sourced-sounding sentence that fuses evidence with an unsourced causal claim is inference laundering — the reader must be able to tell evidence from argument at the sentence level, because the inferences are exactly what the disconfirmation triggers exist to test.
 
 *If you can't answer #1, you haven't compared against the spine. Return to trace probe.*
@@ -165,7 +165,7 @@ spine:
 
   tailings:
     - item: "<dropped thread, insight, or evidence>"
-      source: "<scratchpad location — iteration N, marker type>"
+      source: "<flow location — iteration N, marker type>"
       disposition: promote  # promote | discard
       reason: "<one line>"
 ```
