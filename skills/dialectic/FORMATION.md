@@ -59,7 +59,7 @@ Prefer the boldest case that survives the table, not the safest. A safe case is 
 
 ## Phase 3: Commit and Declare Ground
 
-Write the selected case to state.json under `case`, and append the full formation block — candidates, scores, and the grounds for the selection — to the scratchpad:
+Write the selected case to state.json under `case`, and append the full formation block — candidates, scores, and the grounds for the selection — to the flow:
 
 ```yaml
 case:
@@ -79,7 +79,7 @@ case:
     - {id: B, claim: "<...>", why: "<one line>"}
 ```
 
-Determination is negation: the case's content is its exclusions, and a case that excludes nothing says nothing. The hard core and belt tell CRITIQUE what an amputation is — sacrificing belt under fire is adaptation; sacrificing core is death, and patching a dead core is the degeneration Lakatos named. The excludes list tells CRITIQUE which counters are off-ground: recorded in the scratchpad, not absorbed into the thesis. The asymmetry that shapes all of it: the case must win every load-bearing plank, while the negative needs only one. Minimize the hard core.
+Determination is negation: the case's content is its exclusions, and a case that excludes nothing says nothing. The hard core and belt tell CRITIQUE what an amputation is — sacrificing belt under fire is adaptation; sacrificing core is death, and patching a dead core is the degeneration Lakatos named. The excludes list tells CRITIQUE which counters are off-ground: recorded in the flow, not absorbed into the thesis. The asymmetry that shapes all of it: the case must win every load-bearing plank, while the negative needs only one. Minimize the hard core.
 
 ## Re-entry on ELEVATE
 

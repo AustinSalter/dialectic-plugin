@@ -103,6 +103,10 @@ Validated build:      /dialectic --holdout "thesis" → /forge
 Full package:         /dialectic --holdout "thesis" → /forge + /dialectic-distill
 ```
 
+## The Flow
+
+Every pass is appended to `.claude/dialectic/flow.md`, the run's flow. As in a debate flow, it records the arguments made (claims, evidence, counters, probe verdicts, decisions), not the thinking behind them. The stop hook's warrant gate, the holdout serializer, distillation, and forge all read it.
+
 ## Semantic Markers
 
 All passes use consistent semantic markers. See [MARKERS.md](MARKERS.md) for definitions and usage.

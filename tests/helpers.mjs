@@ -30,18 +30,19 @@ export function writeState(sandbox, overrides = {}) {
     holdout: false,
     holdout_state: { pass: 1, max_passes: 2, verdict: null, report_path: null },
     output_dir: ".dialectic-output/",
-    keep_artifacts: ["memo", "spine", "history", "scratchpad", "state", "prompt"],
+    keep_artifacts: ["memo", "spine", "history", "flow", "state", "prompt"],
   };
   writeFileSync(sandbox.statePath, JSON.stringify({ ...base, ...overrides }, null, 2));
 }
 
-// Scratchpad with N probes: blocks so the warrant gate (Task 2) passes for iteration N.
-export function writeScratchpad(sandbox, { probeBlocks = 3, extra = "" } = {}) {
+// Flow with N probes: blocks so the warrant gate (Task 2) passes for iteration N.
+// file: "scratchpad.md" writes the pre-rename name, for legacy-run tests.
+export function writeFlow(sandbox, { probeBlocks = 3, extra = "", file = "flow.md" } = {}) {
   let text = "";
   for (let i = 1; i <= probeBlocks; i++) {
     text += `## Iteration ${i} critique\n\nprobes:\n  contingency: STRUCTURAL — test\n\n`;
   }
-  writeFileSync(join(sandbox.stateDir, "scratchpad.md"), text + extra);
+  writeFileSync(join(sandbox.stateDir, file), text + extra);
 }
 
 export function writeArtifact(sandbox, name, content) {

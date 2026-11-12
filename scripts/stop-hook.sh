@@ -107,27 +107,30 @@ else
   C="$LEGACY"
 fi
 
-SCRATCHPAD="$STATE_DIR/scratchpad.md"
+FLOW="$STATE_DIR/flow.md"
+# Runs started before the scratchpad -> flow rename may still hold scratchpad.md.
+LEGACY_FLOW="$STATE_DIR/scratchpad.md"
+flow_text() { cat "$LEGACY_FLOW" "$FLOW" 2>/dev/null; return 0; }
 
-# Warrant gate: a decision is only honored if its reasoning was externalized.
+# Warrant gate: a decision is only honored if its warrant is written to the flow.
 if [ -n "$DECISION" ] && [ "$DECISION" != "null" ]; then
   if [ "$LOOP" = "reasoning" ]; then
-    PROBE_COUNT=$(grep -c '^[[:space:]]*probes:' "$SCRATCHPAD" 2>/dev/null)
+    PROBE_COUNT=$(flow_text | grep -c '^[[:space:]]*probes:')
     PROBE_COUNT=${PROBE_COUNT:-0}
     if [ "$PROBE_COUNT" -lt "$ITERATION" ]; then
-      echo "Warrant gate: found $PROBE_COUNT 'probes:' block(s) in scratchpad.md but iteration is $ITERATION. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing." >&2
+      echo "Warrant gate: found $PROBE_COUNT 'probes:' block(s) in flow.md but iteration is $ITERATION. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/flow.md, then stop again. The decision stands; only its warrant is missing." >&2
       exit 2
     fi
-    if { [ "$DECISION" = "reject" ] || [ "$DECISION" = "REJECT" ]; } && ! grep -q '^[[:space:]]*if_reject' "$SCRATCHPAD" 2>/dev/null; then
-      echo "Warrant gate: decision is reject but scratchpad.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again." >&2
+    if { [ "$DECISION" = "reject" ] || [ "$DECISION" = "REJECT" ]; } && ! flow_text | grep -q '^[[:space:]]*if_reject'; then
+      echo "Warrant gate: decision is reject but flow.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again." >&2
       exit 2
     fi
   fi
   if [ "$LOOP" = "distillation" ] && { [ "$DECISION" = "conclude" ] || [ "$DECISION" = "CONCLUDE" ]; }; then
-    PR_COUNT=$(grep -c '^[[:space:]]*probe_results:' "$SCRATCHPAD" 2>/dev/null)
+    PR_COUNT=$(flow_text | grep -c '^[[:space:]]*probe_results:')
     PR_COUNT=${PR_COUNT:-0}
     if [ "$PR_COUNT" -lt "$DIST_ITER" ]; then
-      echo "Warrant gate: found $PR_COUNT 'probe_results:' block(s) in scratchpad.md but distillation pass is $DIST_ITER. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/scratchpad.md, then stop again." >&2
+      echo "Warrant gate: found $PR_COUNT 'probe_results:' block(s) in flow.md but distillation pass is $DIST_ITER. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/flow.md, then stop again." >&2
       exit 2
     fi
   fi
@@ -140,7 +143,7 @@ artifact_filename() {
     spine)           echo "spine.yaml" ;;
     history)         echo "thesis-history.md" ;;
     prompt)          echo "prompt.md" ;;
-    scratchpad)      echo "scratchpad.md" ;;
+    flow|scratchpad) echo "flow.md scratchpad.md" ;;  # scratchpad: keep lists and files from before the rename
     draft)           echo "memo-draft.md" ;;
     state)           echo "state.json" ;;
     holdout_report)  echo "holdout_report.md" ;;
@@ -163,7 +166,7 @@ preserve_artifacts() {
 
   # Handle "all"
   if echo "$artifact_names" | grep -qw "all"; then
-    artifact_names="memo,spine,history,prompt,scratchpad,draft,state,holdout_report,forge_report,forge_draft"
+    artifact_names="memo,spine,history,prompt,flow,draft,state,holdout_report,forge_report,forge_draft"
   fi
 
   local session_dir="$output_dir/$session_id"
@@ -173,20 +176,23 @@ preserve_artifacts() {
   IFS=',' read -ra NAMES <<< "$artifact_names"
   for name in "${NAMES[@]}"; do
     name=$(echo "$name" | xargs)  # trim whitespace
-    local filename
-    filename=$(artifact_filename "$name")
-    if [ -z "$filename" ]; then
+    local filenames filename
+    filenames=$(artifact_filename "$name")
+    if [ -z "$filenames" ]; then
       continue
     fi
-    local src="$state_dir/$filename"
-    if [ -f "$src" ]; then
-      cp "$src" "$session_dir/$filename"
-      if [ -n "$copied" ]; then
-        copied="$copied, \"$filename\""
-      else
-        copied="\"$filename\""
+    for filename in $filenames; do
+      case "$copied" in *"\"$filename\""*) continue ;; esac
+      local src="$state_dir/$filename"
+      if [ -f "$src" ]; then
+        cp "$src" "$session_dir/$filename"
+        if [ -n "$copied" ]; then
+          copied="$copied, \"$filename\""
+        else
+          copied="\"$filename\""
+        fi
       fi
-    fi
+    done
   done
 
   # Write manifest
@@ -217,7 +223,7 @@ checkpoint_artifacts() {
   esac
   checkpoint_dir="${output_dir%/}/$session_id/checkpoint"
   mkdir -p "$checkpoint_dir"
-  for f in scratchpad.md thesis-history.md prompt.md state.json; do
+  for f in flow.md scratchpad.md thesis-history.md prompt.md state.json; do
     [ -f "$STATE_DIR/$f" ] && cp "$STATE_DIR/$f" "$checkpoint_dir/$f"
   done
   echo "  Checkpoint: $checkpoint_dir"
@@ -344,7 +350,7 @@ if [ "$LOOP" = "reasoning" ]; then
       echo "  Re-entering reasoning with the counter-thesis (re-loop 1/1)"
       echo "================================================"
 
-      echo "The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in scratchpad.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped." >&2
+      echo "The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in flow.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped." >&2
       exit 2
     else
       jq '.loop = "awaiting_distillation" | .thesis.status = "refuted" | .decision = null' "$STATE_FILE" > "$STATE_FILE.tmp"
@@ -406,7 +412,7 @@ if [ "$LOOP" = "reasoning" ]; then
       fi
       echo "================================================"
 
-      echo "The critique determined the thesis needs elevation — a fundamental reframe. Re-enter formation per skills/dialectic/FORMATION.md: re-score the candidate field (including rejected candidates) with the accumulated evidence, enter the elevated thesis from the if_elevate block in scratchpad.md as a new candidate, select the winner, update the case object and thesis in state.json, and begin a fresh expansion pass from the winning case. If no case object exists (pre-formation run), adopt the elevated thesis directly." >&2
+      echo "The critique determined the thesis needs elevation — a fundamental reframe. Re-enter formation per skills/dialectic/FORMATION.md: re-score the candidate field (including rejected candidates) with the accumulated evidence, enter the elevated thesis from the if_elevate block in flow.md as a new candidate, select the winner, update the case object and thesis in state.json, and begin a fresh expansion pass from the winning case. If no case object exists (pre-formation run), adopt the elevated thesis directly." >&2
       exit 2
     fi
   fi
@@ -564,7 +570,7 @@ elif [ "$LOOP" = "distillation" ]; then
 
     # Preserve artifacts before cleanup
     OUTPUT_DIR=$(jq -r '.output_dir // ".dialectic-output/"' "$STATE_FILE" 2>/dev/null)
-    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history","scratchpad","state","prompt"]) | join(",")' "$STATE_FILE" 2>/dev/null)
+    KEEP_ARTIFACTS=$(jq -r '(.keep_artifacts // ["memo","spine","history","flow","state","prompt"]) | join(",")' "$STATE_FILE" 2>/dev/null)
     SESSION_ID=$(jq -r '.session_id // "dialectic-unknown"' "$STATE_FILE" 2>/dev/null)
     SAVED_TO=$(preserve_artifacts "$STATE_DIR" "$OUTPUT_DIR" "$KEEP_ARTIFACTS" "$SESSION_ID")
     if [ -n "$SAVED_TO" ]; then

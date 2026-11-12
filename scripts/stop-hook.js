@@ -113,30 +113,36 @@ function blockStop(reason) {
   process.exit(2);
 }
 
-const SCRATCHPAD = path.join(STATE_DIR, "scratchpad.md");
+const FLOW = path.join(STATE_DIR, "flow.md");
+// Runs started before the scratchpad -> flow rename may still hold scratchpad.md.
+const LEGACY_FLOW = path.join(STATE_DIR, "scratchpad.md");
 
-function countBlocks(re) {
-  try {
-    return (fs.readFileSync(SCRATCHPAD, "utf8").match(re) || []).length;
-  } catch { return 0; }
+function readFlow() {
+  return [LEGACY_FLOW, FLOW]
+    .map((p) => { try { return fs.readFileSync(p, "utf8"); } catch { return ""; } })
+    .join("\n");
 }
 
-// Warrant gate: a decision is only honored if its reasoning was externalized.
+function countBlocks(re) {
+  return (readFlow().match(re) || []).length;
+}
+
+// Warrant gate: a decision is only honored if its warrant is written to the flow.
 if (decision) {
   if (loop === "reasoning") {
     const n = countBlocks(/^[ \t]*probes:/gm);
     if (n < iteration) {
-      blockStop(`Warrant gate: found ${n} 'probes:' block(s) in scratchpad.md but iteration is ${iteration}. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/scratchpad.md, then stop again. The decision stands; only its warrant is missing.`);
+      blockStop(`Warrant gate: found ${n} 'probes:' block(s) in flow.md but iteration is ${iteration}. Append the full critique output for this iteration (probes:, preservation:, decision block) to .claude/dialectic/flow.md, then stop again. The decision stands; only its warrant is missing.`);
     }
     if (decision === "reject" && countBlocks(/^[ \t]*if_reject/gm) === 0) {
-      blockStop("Warrant gate: decision is reject but scratchpad.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again.");
+      blockStop("Warrant gate: decision is reject but flow.md has no if_reject block. Append if_reject with refuting_basis (which claims/evidence the refutation rests on) and optional counter_thesis, then stop again.");
     }
   }
   if (loop === "distillation" && decision === "conclude") {
     const n = countBlocks(/^[ \t]*probe_results:/gm);
     const distIter = state.distillation_iteration || 1;
     if (n < distIter) {
-      blockStop(`Warrant gate: found ${n} 'probe_results:' block(s) in scratchpad.md but distillation pass is ${distIter}. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/scratchpad.md, then stop again.`);
+      blockStop(`Warrant gate: found ${n} 'probe_results:' block(s) in flow.md but distillation pass is ${distIter}. Append this pass's probe_results: yaml (all five probes with per-probe verdicts and quoted evidence) to .claude/dialectic/flow.md, then stop again.`);
     }
   }
 }
@@ -147,13 +153,16 @@ const ARTIFACT_MAP = {
   spine: "spine.yaml",
   history: "thesis-history.md",
   prompt: "prompt.md",
-  scratchpad: "scratchpad.md",
+  flow: ["flow.md", "scratchpad.md"], // scratchpad.md: runs started before the rename
   draft: "memo-draft.md",
   state: "state.json",
   holdout_report: "holdout_report.md",
   forge_report: "forge_report.md",
   forge_draft: "forge-draft.md",
 };
+
+// state.json files written before the rename list "scratchpad" in keep_artifacts.
+const ARTIFACT_ALIASES = { scratchpad: "flow" };
 
 function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
   // Resolve "all" and "none"
@@ -166,13 +175,15 @@ function preserveArtifacts(stateDir, outputDir, artifactNames, sessionId) {
   fs.mkdirSync(sessionDir, { recursive: true });
 
   const copied = [];
-  for (const name of artifactNames) {
-    const filename = ARTIFACT_MAP[name];
-    if (!filename) continue;
-    const src = path.join(stateDir, filename);
-    if (fs.existsSync(src)) {
-      fs.copyFileSync(src, path.join(sessionDir, filename));
-      copied.push(filename);
+  for (const name of new Set(artifactNames.map((n) => ARTIFACT_ALIASES[n] || n))) {
+    const entry = ARTIFACT_MAP[name];
+    if (!entry) continue;
+    for (const filename of [].concat(entry)) {
+      const src = path.join(stateDir, filename);
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, path.join(sessionDir, filename));
+        copied.push(filename);
+      }
     }
   }
 
@@ -202,7 +213,7 @@ function checkpointArtifacts() {
   }
   const checkpointDir = path.join(outputDir, sessionId, "checkpoint");
   fs.mkdirSync(checkpointDir, { recursive: true });
-  for (const f of ["scratchpad.md", "thesis-history.md", "prompt.md", "state.json"]) {
+  for (const f of ["flow.md", "scratchpad.md", "thesis-history.md", "prompt.md", "state.json"]) {
     const src = path.join(STATE_DIR, f);
     if (fs.existsSync(src)) fs.copyFileSync(src, path.join(checkpointDir, f));
   }
@@ -329,7 +340,7 @@ if (loop === "reasoning") {
       log("================================================");
 
       blockStop(
-        `The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in scratchpad.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped.`
+        `The critique rejected the thesis and proposed a counter-thesis. Read the if_reject block in flow.md for the refuting basis. The counter-thesis is now thesis.current in state.json. Begin a fresh expansion pass from it. Claims killed by the refutation must be recorded as killed, not silently dropped.`
       );
     } else {
       state.loop = "awaiting_distillation";
@@ -392,7 +403,7 @@ if (loop === "reasoning") {
       log("================================================");
 
       blockStop(
-        `The critique determined the thesis needs elevation — a fundamental reframe. Re-enter formation per skills/dialectic/FORMATION.md: re-score the candidate field (including rejected candidates) with the accumulated evidence, enter the elevated thesis from the if_elevate block in scratchpad.md as a new candidate, select the winner, update the case object and thesis in state.json, and begin a fresh expansion pass from the winning case. If no case object exists (pre-formation run), adopt the elevated thesis directly.`
+        `The critique determined the thesis needs elevation — a fundamental reframe. Re-enter formation per skills/dialectic/FORMATION.md: re-score the candidate field (including rejected candidates) with the accumulated evidence, enter the elevated thesis from the if_elevate block in flow.md as a new candidate, select the winner, update the case object and thesis in state.json, and begin a fresh expansion pass from the winning case. If no case object exists (pre-formation run), adopt the elevated thesis directly.`
       );
     }
   }
@@ -550,7 +561,7 @@ if (loop === "reasoning") {
 
     // Preserve artifacts before cleanup
     const outputDir = state.output_dir || ".dialectic-output/";
-    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history", "scratchpad", "state", "prompt"];
+    const keepArtifacts = state.keep_artifacts || ["memo", "spine", "history", "flow", "state", "prompt"];
     const sessionId = state.session_id || "dialectic-" + Date.now();
     const savedTo = preserveArtifacts(STATE_DIR, outputDir, keepArtifacts, sessionId);
     if (savedTo) {

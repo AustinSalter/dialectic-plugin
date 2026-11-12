@@ -15,7 +15,7 @@ Read `.claude/dialectic/state.json`. Check:
 - If `loop` is already `"distillation"`, a distillation is in progress. Resume it.
 
 Required artifacts (all must exist in `.claude/dialectic/`):
-- `scratchpad.md` — every pass as written, with markers
+- `flow.md` — every pass as written, with markers. A run started before the scratchpad → flow rename may hold `scratchpad.md` instead of, or as well as, `flow.md`: either satisfies this, and `scratchpad.md` is read first, as the start of the flow.
 - `state.json` — final thesis, confidence, evidence
 - `thesis-history.md` — iteration trajectory
 
@@ -25,11 +25,11 @@ If any are missing, report which and stop.
 
 Parse `$ARGUMENTS` for optional flags:
 - `--output=<dir>` — Directory for preserved artifacts (overrides state.json value, default: `.dialectic-output/`)
-- `--keep=<list>` — Comma-separated artifact names to preserve (overrides state.json value, default: `memo,spine,history,scratchpad,state,prompt`)
+- `--keep=<list>` — Comma-separated artifact names to preserve (overrides state.json value, default: `memo,spine,history,flow,state,prompt`)
 - `--min-passes=N` — Minimum distillation passes (default: 2)
 - `--max-passes=N` — Maximum distillation passes (default: 4)
 
-Valid `--keep` values: `memo` (memo-final.md), `spine` (spine.yaml), `history` (thesis-history.md), `prompt` (prompt.md), `scratchpad` (scratchpad.md), `draft` (memo-draft.md), `state` (state.json), `all` (everything), `none` (skip preservation).
+Valid `--keep` values: `memo` (memo-final.md), `spine` (spine.yaml), `history` (thesis-history.md), `prompt` (prompt.md), `flow` (flow.md, plus scratchpad.md from runs before the rename; `scratchpad` is still accepted), `draft` (memo-draft.md), `state` (state.json), `all` (everything), `none` (skip preservation).
 
 Update state.json:
 - Set `loop: "distillation"`
@@ -64,7 +64,7 @@ On pass 2+: Revise based on previous probe findings, re-run probes in adversaria
 
 The memo target format is defined in `skills/dialectic/SYNTHESIS.md`.
 
-Each pass, append a `probe_results:` yaml block to `.claude/dialectic/scratchpad.md` — all five probes, per-probe verdict, and the quoted memo text each verdict rests on. The stop hook will not conclude distillation without one block per pass.
+Each pass, append a `probe_results:` yaml block to `.claude/dialectic/flow.md` — all five probes, per-probe verdict, and the quoted memo text each verdict rests on. The stop hook will not conclude distillation without one block per pass.
 
 ## CRITICAL: One Pass Per Response
 

@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { makeSandbox, writeState, writeScratchpad, runHook, readState, BOTH } from "./helpers.mjs";
+import { makeSandbox, writeState, writeFlow, runHook, readState, BOTH } from "./helpers.mjs";
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -27,7 +27,7 @@ function makeWorktreeLayout(stateIn) {
   mkdirSync(stateDir, { recursive: true });
   const sb = { dir: home, stateDir, statePath: join(stateDir, "state.json") };
   writeState(sb, { iteration: 1, decision: null });
-  writeScratchpad(sb, { probeBlocks: 1 });
+  writeFlow(sb, { probeBlocks: 1 });
   return { main, wt, sb };
 }
 
@@ -63,7 +63,7 @@ for (const impl of BOTH) {
   test(`[${impl}] cwd outside any project falls back to CLAUDE_PROJECT_DIR`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 1, decision: null });
-    writeScratchpad(sb, { probeBlocks: 1 });
+    writeFlow(sb, { probeBlocks: 1 });
     const elsewhere = mkdtempSync(join(tmpdir(), "dialectic-elsewhere-"));
     const r = runHook(sb, impl, { cwd: elsewhere, projectDir: sb.dir, input: { cwd: elsewhere } });
     assert.equal(r.status, 2, r.stderr);
@@ -79,7 +79,7 @@ for (const impl of BOTH) {
 test("serialize-trace writes holdout input in the worktree, not CLAUDE_PROJECT_DIR", () => {
   const { main, wt, sb } = makeWorktreeLayout("worktree");
   writeFileSync(sb.statePath, JSON.stringify({ iteration: 4, max_iterations: 5, thesis: { current: "t", confidence: { R: 0.7, E: 0.8, C: 0.5 } } }));
-  writeFileSync(join(sb.stateDir, "scratchpad.md"), "[EVIDENCE] something\n");
+  writeFileSync(join(sb.stateDir, "flow.md"), "[EVIDENCE] something\n");
   writeFileSync(join(sb.stateDir, "thesis-history.md"), "## Iteration 1\n**Thesis**: t\n**Confidence**: R=0.70 E=0.80 C=0.50\n**Decision**: CONCLUDE\n");
   const r = spawnSync("node", [join(REPO, "scripts", "serialize-trace.js")], {
     cwd: join(wt, "src"),

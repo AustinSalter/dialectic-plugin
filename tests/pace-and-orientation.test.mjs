@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { makeSandbox, writeState, writeScratchpad, runHook, readState, BOTH } from "./helpers.mjs";
+import { makeSandbox, writeState, writeFlow, runHook, readState, BOTH } from "./helpers.mjs";
 
 const HISTORY = `## Iteration 1
 
@@ -19,7 +19,7 @@ for (const impl of BOTH) {
   test(`[${impl}] continue re-feed carries thesis, confidence and the last Next Priority`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 1, decision: "continue", thesis: { current: "Switching costs protect the incumbent", confidence: { R: 0.6, E: 0.4, C: 0.5 }, confidence_history: [] } });
-    writeScratchpad(sb, { probeBlocks: 1 });
+    writeFlow(sb, { probeBlocks: 1 });
     writeFileSync(join(sb.stateDir, "thesis-history.md"), HISTORY);
     const r = runHook(sb, impl);
     assert.equal(r.status, 2, r.stderr);
@@ -33,7 +33,7 @@ for (const impl of BOTH) {
   test(`[${impl}] continue re-feed without a history file still orients`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 1, decision: "continue" });
-    writeScratchpad(sb, { probeBlocks: 1 });
+    writeFlow(sb, { probeBlocks: 1 });
     const r = runHook(sb, impl);
     assert.equal(r.status, 2, r.stderr);
     assert.match(r.stderr, /iteration 2 of 5/);
@@ -43,7 +43,7 @@ for (const impl of BOTH) {
   test(`[${impl}] pace=manual: continue advances the iteration but allows the stop`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 1, decision: "continue", pace: "manual" });
-    writeScratchpad(sb, { probeBlocks: 1 });
+    writeFlow(sb, { probeBlocks: 1 });
     writeFileSync(join(sb.stateDir, "thesis-history.md"), HISTORY);
     const r = runHook(sb, impl);
     assert.equal(r.status, 0, r.stderr);
@@ -57,7 +57,7 @@ for (const impl of BOTH) {
   test(`[${impl}] pace=manual: conclude below floor is still overridden, then pauses`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 1, decision: "conclude", pace: "manual" });
-    writeScratchpad(sb, { probeBlocks: 1 });
+    writeFlow(sb, { probeBlocks: 1 });
     const r = runHook(sb, impl);
     assert.equal(r.status, 0, r.stderr);
     assert.match(r.stdout, /CONCLUDE overridden/);
@@ -68,7 +68,7 @@ for (const impl of BOTH) {
   test(`[${impl}] pace=manual: conclude at floor still exits the loop normally`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 3, decision: "conclude", pace: "manual" });
-    writeScratchpad(sb, { probeBlocks: 3 });
+    writeFlow(sb, { probeBlocks: 3 });
     const r = runHook(sb, impl);
     assert.equal(r.status, 0, r.stderr);
     assert.equal(readState(sb).loop, "awaiting_distillation");
@@ -77,7 +77,7 @@ for (const impl of BOTH) {
   test(`[${impl}] pace absent behaves as auto`, () => {
     const sb = makeSandbox();
     writeState(sb, { iteration: 1, decision: "continue" });
-    writeScratchpad(sb, { probeBlocks: 1 });
+    writeFlow(sb, { probeBlocks: 1 });
     const r = runHook(sb, impl);
     assert.equal(r.status, 2);
     assert.equal(readState(sb).resume_note, undefined);

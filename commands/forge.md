@@ -15,13 +15,13 @@ Read `.claude/dialectic/state.json`. Check:
 - If `loop` is already `"forge"`, a forge synthesis is in progress. Resume it.
 
 Required artifacts (all must exist in `.claude/dialectic/`):
-- `scratchpad.md` — every pass as written, with markers
+- `flow.md` — every pass as written, with markers. A run started before the scratchpad → flow rename may hold `scratchpad.md` instead of, or as well as, `flow.md`: either satisfies this, and `scratchpad.md` is read first, as the start of the flow.
 - `state.json` — final thesis, confidence, evidence
 - `thesis-history.md` — iteration trajectory
 
 If any are missing, report which and stop.
 
-**Fallback for concluded distillation**: If `.claude/dialectic/` does not exist (distillation already concluded and cleaned up), find the newest preserved session: `ls -td .dialectic-output/*/ | head -1`. The forge loop is stop-hook-driven off `.claude/dialectic/state.json` — reasoning in place under `.dialectic-output/` gives the hook nothing to enforce. Restore the session instead: `mkdir -p .claude/dialectic && cp <session>/scratchpad.md <session>/state.json <session>/thesis-history.md <session>/prompt.md .claude/dialectic/`. Then continue from Step 2 (argument parsing) as normal — the restored state carries the original session_id, so later preservation lands in the same session directory. Say which session you restored from.
+**Fallback for concluded distillation**: If `.claude/dialectic/` does not exist (distillation already concluded and cleaned up), find the newest preserved session: `ls -td .dialectic-output/*/ | head -1`. The forge loop is stop-hook-driven off `.claude/dialectic/state.json` — reasoning in place under `.dialectic-output/` gives the hook nothing to enforce. Restore the session instead: `mkdir -p .claude/dialectic && cp <session>/flow.md <session>/state.json <session>/thesis-history.md <session>/prompt.md .claude/dialectic/`. Sessions preserved before the rename hold `scratchpad.md` instead of `flow.md`; copy it under its own name; the hook and the forge inputs accept either. Then continue from Step 2 (argument parsing) as normal — the restored state carries the original session_id, so later preservation lands in the same session directory. Say which session you restored from.
 
 ## Step 2: Parse Arguments and Initialize
 
@@ -53,7 +53,7 @@ Update state.json:
 ## Step 5: Generate Forge Spec
 
 Read trace artifacts:
-- `.claude/dialectic/scratchpad.md`
+- `.claude/dialectic/flow.md` (and `scratchpad.md` first, if a run from before the rename left one)
 - `.claude/dialectic/thesis-history.md`
 - `.claude/dialectic/state.json`
 

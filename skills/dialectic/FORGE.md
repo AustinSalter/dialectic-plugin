@@ -13,7 +13,7 @@ Same loop output. Different extraction. Different audience.
 
 Read the following before generating the spec:
 
-1. **Loop output** — `.claude/dialectic/scratchpad.md` (every pass as written, with markers)
+1. **Loop output** — `.claude/dialectic/flow.md` (every pass as written, with markers; a run from before the scratchpad → flow rename may also hold `scratchpad.md`, read first)
 2. **State file** — `.claude/dialectic/state.json` for confidence scores and iteration count
 3. **Thesis history** — `.claude/dialectic/thesis-history.md` for iteration trajectory
 4. **Holdout report** (if exists) — `.claude/dialectic/holdout_report.md` for validated/challenged findings

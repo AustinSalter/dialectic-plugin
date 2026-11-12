@@ -30,13 +30,13 @@ The failure mode is amputation: a memo that says "AGI risk is low-probability" h
 
 ## 2. Sufficiency: Compress for the Decision, Not the Analysis
 
-Fisher's sufficient statistic contains all the information in the data relevant to a specific inference — and nothing else. The critical word is *specific*: sufficient for what? The distillation loop defines the inference task: the reader's decision. The memo must contain everything needed to act, and nothing needed only to reproduce the analysis. The scratchpad is the sample; the memo is the sufficient statistic; the decision is the parameter.
+Fisher's sufficient statistic contains all the information in the data relevant to a specific inference — and nothing else. The critical word is *specific*: sufficient for what? The distillation loop defines the inference task: the reader's decision. The memo must contain everything needed to act, and nothing needed only to reproduce the analysis. The flow is the sample; the memo is the sufficient statistic; the decision is the parameter.
 
 Aristotle's enthymeme extends this from information theory to rhetoric. The rhetorical syllogism omits the premise the audience already holds, forcing the listener to supply it. The strongest compression trusts the reader's expertise to complete the argument. When the memo states "foundation model valuations make venture returns impossible at current entry points," the experienced VC supplies the 10x return math. The memo compressed the calculation; the reader's expertise decompressed it.
 
 Not all analyses compress into fixed-length memos. The Pitman-Koopman-Darmois theorem establishes that only exponential-family distributions admit finite-dimensional sufficient statistics. Some problems have irreducible complexity. The **Escape Hatch** — triggered when max iterations are reached and confidence remains below 0.5 — is the system's acknowledgment of this limit.
 
-**Implementation.** The **Sufficiency probe** asks: "Could the reader act on this without the scratchpad?" The enthymeme sharpens this: the best compression doesn't merely omit unnecessary detail — it leaves strategic space for the reader's expertise to complete the argument.
+**Implementation.** The **Sufficiency probe** asks: "Could the reader act on this without the flow?" The enthymeme sharpens this: the best compression doesn't merely omit unnecessary detail — it leaves strategic space for the reader's expertise to complete the argument.
 
 ---
 
@@ -58,7 +58,7 @@ Orwell's compression axioms ("if it is possible to cut a word out, always cut it
 
 Category theory's structure-preserving morphisms formalize what the distillation loop requires of compression. A functor between categories maps objects to objects and arrows to arrows while preserving composition. The distillation loop defines two categories: the reasoning spine (claims, evidence, causal chains) and the conviction memo (sections, sentences, arguments). Claims map to sentences. Causal chain steps map to argument flow. The constraint: if claim A enables claim B enables claim C in the spine, the memo's argument flow must preserve that dependency. You can compress the nodes; you cannot break the edges.
 
-The spine exists as an intermediate artifact for this reason. The scratchpad records the *journey* (chronological, including dead ends). The spine records the *structure* (logical, only what survived). The memo records the *communication* (rhetorical, optimized for the reader). Each transition is a structure-preserving map.
+The spine exists as an intermediate artifact for this reason. The flow records the *journey* (chronological, including dead ends). The spine records the *structure* (logical, only what survived). The memo records the *communication* (rhetorical, optimized for the reader). Each transition is a structure-preserving map.
 
 **Implementation.** The **Trace probe** asks: "Every load-bearing claim in the memo? Every memo claim in the spine?" This is the bidirectional morphism check — nothing dropped, nothing unsupported. A memo that states the conclusion without intermediate reasoning has broken the composition law: the reader cannot trace how A led to B led to C.
 
